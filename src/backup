@@ -70,7 +70,7 @@ class Vault(object):
 
     def __verify_clean(self, path):
         for s in self.status(path):
-            if not (s.tree is None and s.index is None):
+            if not (s.tree is None and s.idx is None):
                 error("Item {} is not commited", s)
 
     def __add_blob(self, item):
