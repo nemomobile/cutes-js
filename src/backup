@@ -89,10 +89,10 @@ class Vault(object):
             is_new_blob = True
 
         if is_new_blob:
-            trace("New blob", ahash)
             os.rename(path, blob_name)
         else:
             os.unlink(path)
+
         target = os.path.relpath(blob_name, os.path.dirname(path))
         os.symlink(target, path)
 
@@ -102,7 +102,7 @@ class Vault(object):
         [self.__add_blob(item) for item in blob_state]
 
     def __backup_module(self, module):
-        trace('')
+        trace('Commiting {}', module)
         now = self.__backup_time
         module.set_vault(self.path)
         try:
@@ -156,7 +156,7 @@ class Module(object):
         self.blob_ln_path = os.path.join(str(self.root_dir), 'blobs')
 
     def invoke(self):
-        trace("Start {} backup", self.name)
+        trace("Invoking {} backup", self.name)
         rmtree(self.data_path)
         rmtree(self.blob_ln_path)
 
@@ -165,7 +165,6 @@ class Module(object):
                               '--bin-dir', str(self.blob_ln_path),
                               '--home-dir', str(self.__home),
                               *self.params)
-        print out, err, res
         res and error("Non-zero return code {}\nSTDOUT:\n{}STDERR:\n{}\n",
                       res, out, err)
 

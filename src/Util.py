@@ -35,7 +35,7 @@ def items(*args):
     return args
 
 def shell(cwd, cmd, *args):
-    trace("Execute {} with {}", cmd, args)
+    #trace("Execute {} with {}", cmd, args)
     p = Popen(items(cmd, *args), stdout=PIPE, stderr=PIPE, cwd = cwd)
     out, err = p.communicate()
     return out, err, p.returncode
@@ -132,7 +132,6 @@ class Status(object):
 class Dir(object):
     def __init__(self, *path):
         self._name = os.path.join(*path)
-        trace("DIR {}", self._name)
         os.path.exists(self._name) or os.makedirs(self._name)
 
     def __str__(self):
