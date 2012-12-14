@@ -89,7 +89,7 @@ class Status(object):
              ' ' : None }
 
 
-    __bin = ('rename', 'copy', 'type')
+    __bin = ('rename', 'copy')
 
     def __init__(self):
         self.src, self.dst, self.tree, self.idx = None, None, None, None
