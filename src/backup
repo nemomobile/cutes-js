@@ -5,9 +5,10 @@ import os, sys
 
 class Vault(object):
 
-    def __init__(self, path):
+    def __init__(self, path, info):
         self.__dir = Dir(path)
         self.__git = Git(path)
+        self.__info = info
 
         if self.__git.init_if_new():
             self.__init_repo()
@@ -32,6 +33,9 @@ class Vault(object):
         mark = '.vault'
         cleanup = [lambda: shutil.rmtree(self.__git.storage)]
         try:
+            self.__git.config("user.email", self.__info["email"])
+            self.__git.config("user.name", self.__info["user"])
+
             mark_fname = os.path.join(self.path, mark)
             with open(mark_fname, 'w') as f:
                 cleanup.append(lambda: os.remove(mark_fname))
@@ -98,6 +102,7 @@ class Vault(object):
         [self.__add_blob(item) for item in blob_state]
 
     def __backup_module(self, module):
+        trace('')
         now = self.__backup_time
         module.set_vault(self.path)
         try:
@@ -179,5 +184,7 @@ if __name__ == '__main__':
         Module(home_dir, 'contacts', '../examples/scripts/contacts.py')
         ]
 
-    vault = Vault(vault_dir)
+    # TODO user info should be passed from outside
+    vault = Vault(vault_dir, {"user" : "Test User",
+                              "email" : "somebody@nowhere.com"})
     vault.backup(modules)
