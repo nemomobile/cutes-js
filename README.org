@@ -1,0 +1,49 @@
+* mer-vault
+
+Set of tools to perform backup/restoration of the data.
+
+It uses git for data and metadata management. Binaries are stored
+separately now inside .git repository.
+
+** Rationale
+
+Application developers ordinary imagine backup as a process of
+performing a snapshots of an application state and restoration as
+replacing application state with previously saved state. So, the
+common strategy of backup is to stop application, copy all its data as
+is somewhere and continue to work. Restoration is the reverse
+process.
+
+This is the bad practice: application database can be damaged and
+initially there will not be any visible changes in behaviour, user
+performs backup, but later user notices issues in application/system
+behaviour and want to restore its state from backup one made
+earlier. But because database was corrupted before, restoring data
+from this backup will result in the same issues to reappear
+soon. Also, user can add some data in the mean time, so restoration
+also will result in data loss. Finally, user still has damaged
+database and lost data he/she added in a timeframe between backup and
+restoration.
+
+The proper and flexible way to backup/restore application data is to
+work with exporting/importing structured data and saving/restoring
+opaque data. So, like in relational databases world application data
+can be separated to data itself and blobs:
+
+- data (structured) can be represented in human-readable form
+  (e.g. for relational database this is SQL, for contacts database it
+  can be vCard files, maybe, EXIF information from images, MP3 tags
+  etc.).
+
+- opaque, binary data aka blobs (e.g. images, videos, audio files, can
+  be also something like PDF files (potentially can exported but it is
+  hard to do it and can result in some data loss), documents in binary
+  formats etc.
+
+So, application communication with backup world is described in terms
+of the following operations:
+
+- data: export/import/clear
+
+- blobs: save/load/clear
+
