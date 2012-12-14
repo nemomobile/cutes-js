@@ -161,6 +161,7 @@ class Module(object):
         rmtree(self.blob_ln_path)
 
         out, err, res = shell("..", self.script,
+                              '--action', 'export',
                               '--dir', self.data_path,
                               '--bin-dir', str(self.blob_ln_path),
                               '--home-dir', str(self.__home),

@@ -48,6 +48,23 @@ of the following operations:
 
 - blobs: save/load/clear
 
+** Backup API
+
+Each application should register path to executable to be invoked for
+backup/restore. The API itself is just a set of command line options.
+
+Options:
+
+- --dir -- points to destination directory to save application
+  structured data;
+
+- --bin-dir -- destination directory for blobs;
+
+- --home-dir -- user home directory path;
+
+- --action -- which action should be executed. Possible values are:
+  import, export, clear.
+
 ** Examples
 
 Now this project is in the prototype stage, so most of configuration
