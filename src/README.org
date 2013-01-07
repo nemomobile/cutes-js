@@ -1,0 +1,15 @@
+* QScript interpreter
+
+** Library path
+
+Extension library paths are set in environment variable
+QTSCRIPT_LIBRARY_PATH.
+
+* Commands
+
+** Vault initialization
+
+   Precond: Vault directory should not exist
+
+   ./qjs vault.js -H PATH_TO_VAULT -a init -g "user.name=USERNAME,user.email=EMAIL"
+
