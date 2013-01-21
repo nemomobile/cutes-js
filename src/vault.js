@@ -235,25 +235,13 @@ var mk_vault = function(path) {
         var blobs_dir = os.path(root_dir, "blobs")
         var blobs_rel = os.path(name, "blobs")
         var mkdir = os.mkdir;
-        var args = {'--dir' : data_dir,
-                    '--bin-dir' : blobs_dir,
-                    '--home-dir' : options.home }
 
-        var exec_script = function() {
-            var arglist = [];
-            for (var arg in args) {
-                arglist.push([arg, args[arg]].join('='))
-            }
-            var p = subprocess.popen(config.script, arglist)
-            p.waitForFinished()
-            if (p.exitCode())
-                throw lib.error({ module : name,
-                                  script : config.script,
-                                  args : arglist,
-                                  rc : p.exitCode(),
-                                  stdout : p.readAllStandardOutput(),
-                                  stderr : p.readAllStandardError()});
-            print(p.readAllStandardOutput(), p.readAllStandardError());
+        var exec_script = function(action) {
+            var args = ['--action', action,
+                        '--dir', data_dir,
+                        '--bin-dir', blobs_dir,
+                       '--home-dir', options.home ]
+            print(subprocess.check_output(config.script, args))
         }
 
         var save_blob = function(item) {
@@ -281,24 +269,22 @@ var mk_vault = function(path) {
         }
 
         var restore = function() {
-            args['--action'] = 'import'
-            exec_script()
+            exec_script('import')
         }
 
         var backup = function() {
-            args['--action'] = 'export'
-            os.rmtree(data_dir);
-            os.rmtree(blobs_dir);
+            os.rmtree(data_dir)
+            os.rmtree(blobs_dir)
 
-            mkdir(root_dir);
-            mkdir(data_dir);
-            mkdir(blobs_dir);
-            exec_script()
+            mkdir(root_dir)
+            mkdir(data_dir)
+            mkdir(blobs_dir)
+            exec_script('export')
 
             var status, i;
-            status = git.status(blobs_rel);
+            status = git.status(blobs_rel)
             for (i = 0; i < status.length; ++i)
-                save_blob(status[i]);
+                save_blob(status[i])
 
             // commit data
             status = git.status(root_dir)
