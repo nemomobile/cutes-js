@@ -177,7 +177,7 @@ var mk_git = function(storage_path) {
         hash_object : hash_object,
         rev_parse : rev_parse,
         tag : tag,
-        tag : checkout,
+        checkout : checkout,
         returncode : function() { return p.returncode(); },
         stdout : function() { return p.stdout(); },
         stderr : function() { return p.stderr(); },
@@ -240,17 +240,16 @@ var mk_vault = function(path) {
                     '--home-dir' : options.home }
 
         var exec_script = function() {
-            var arglist;
+            var arglist = [];
             for (var arg in args) {
-                arglist.push(arg)
-                arglist.push(args[arg])
+                arglist.push([arg, args[arg]].join('='))
             }
             var p = subprocess.popen(config.script, arglist)
             p.waitForFinished()
             if (p.exitCode())
                 throw lib.error({ module : name,
                                   script : config.script,
-                                  args : args,
+                                  args : arglist,
                                   rc : p.exitCode(),
                                   stdout : p.readAllStandardOutput(),
                                   stderr : p.readAllStandardError()});
@@ -282,12 +281,12 @@ var mk_vault = function(path) {
         }
 
         var restore = function() {
-            args.action = 'import'
+            args['--action'] = 'import'
             exec_script()
         }
 
         var backup = function() {
-            args.action = 'export'
+            args['--action'] = 'export'
             os.rmtree(data_dir);
             os.rmtree(blobs_dir);
 
@@ -325,7 +324,7 @@ var mk_vault = function(path) {
             }
 
         };
-
+        return { backup : backup, restore : restore }
     }
 
     var backup = function(config, options) {
