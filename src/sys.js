@@ -26,70 +26,149 @@
     if (lib.sys)
         return;
 
-    var options = function(argv, info) {
-        var params = [];
-        var opts = {};
+    var options = function(data) {
+        var that = { info : data }
+        var short_ = {}
+        var long_ = {}
 
-        var help = function() {
-            var line = "Usage: " + argv[0] + " " + argv[1];
-            for (var k in info) {
-                var v = info[k];
-                var name = v.name;
-                var desc = " -" + (k.length > 1 ? "-" + k : k) + " ";
-                if (v.has_param)
-                    desc += ("<" + name + ">");
-                line += desc;
+        var cache_options = function() {
+            for (var name in data) {
+                var info = data[name]
+                var pseudonym = info.short_
+                if (pseudonym)
+                    short_[pseudonym] = name
+                pseudonym = info.long_
+                if (pseudonym)
+                    long_[pseudonym] = name
             }
-            print(line);
-        };
+        }
+        cache_options()
 
-        var addopt = function(name, value) {
-            if (!(name in info)) {
-                help();
-                throw lib.error({ msg : "Unknown option " + name});
+        var help = function(argv) {
+            var lines = ["Usage: " + argv[0] + " <options> <params>"]
+            for (var name in data) {
+                var items = []
+                var v = data[name]
+                var param = v.has_param ? ("<" + name + ">") : ""
+                var p = v.short_
+                if (p)
+                    items.push("-" + p + " " + param)
+                p = v.long_
+                if (p)
+                    items.push("--" + p + (v.has_param ? ("=" + param) : ""))
+                lines.push("\t" + items.join(', '))
             }
-            opts[info[name].name] = value;
-        };
+            print(lines.join('\n'));
+        }
 
-        var getopt = function(i, name) {
-            ++i;
-            if (i >= argv.length)
-                throw lib.error({ msg : "Expected value", option : name});
-            var v = argv[i];
-            if (v[0] == '-')
-                throw lib.error({ msg: "Expected value",
-                                  option : name, got : v });
-            addopt(name, v);
-            return i;
-        };
+        var parse = function(argv) {
+            var params = []
+            var opts = {}
 
-        var name;
-        for (var i = 0; i < argv.length; ++i) {
-            var a = argv[i];
-            if (a[0] != '-') {
-                params.push(a);
-            } else if (a.length > 2 && a[1] == '-') {
-                i = getopt(i, a.substr(2));
-            } else {
-                name = a.substr(1, 2);
-                if (a.length > 2) {
-                    addopt(name, a.substr(2));
+            var get_long = function(i, name) {
+                var value = true
+                var div_pos = name.indexOf("=")
+
+                if (div_pos === 0)
+                    throw lib.error({msg : '"=" can not be an long option name '})
+
+                if (div_pos >= 0) {
+                    value = name.substr(div_pos + 1)
+                    name = name.substr(0, div_pos)
+                }
+                var var_name = long_[name]
+                if (var_name === undefined)
+                    throw lib.error({msg : "Unknown long option", option : name })
+
+                var info = that.info[var_name]
+                if (info.has_param) {
+                    if (div_pos < 0) {
+                        if (++i >= argv.length)
+                            throw lib.error({ msg : "Expected option data", option : name});
+
+                        value = argv[i]
+                        if (value[0] == '-')
+                            throw lib.error({ msg: "Expected value, not option", option : name,
+                                              next : value });
+                    }
                 } else {
-                    i = getopt(i, name);
+                    if (div_pos >= 0)
+                        throw lib.error({msg : "Option should not have a value",
+                                         option : name, value : value})
+                }
+                opts[var_name] = value
+                return i
+            }
+
+            var get_short = function(i, name) {
+                var var_name = short_[name]
+                if (name === undefined)
+                    throw lib.error({msg : "Unknown short option", option : name })
+                var value = true
+                var info = that.info[var_name]
+                if (info.has_param) {
+                    if (++i >= argv.length)
+                        throw lib.error({ msg : "Expected option data", option : name});
+
+                    value = argv[i]
+                    if (value[0] == '-')
+                        throw lib.error({ msg: "Expected value, not option", option : name,
+                                          next : value });
+                }
+                opts[var_name] = value
+                return i
+            }
+
+            var getopt = function(i, a) {
+                if (a[1] == '-') {
+                    i = get_long(i, a.substr(2))
+                } else if (a.length == 2) {
+                    i = get_short(i, a[1]);
+                } else {
+                    throw lib.error({msg : "Invalid option format", option : a })
+                }
+                return i
+            }
+
+            var check_required = function() {
+                for (var name in that.info) {
+                    var v = that.info[name]
+                    if (v.required && !(name in opts)) {
+                        throw lib.error({msg : "Option is required", option : name});
+                    }
                 }
             }
+
+            for (var i = 0; i < argv.length; ++i) {
+                var a = argv[i];
+                if (a.length >= 2 && a[0] == '-') {
+                    i = getopt(i, a);
+                } else {
+                    params.push(a);
+                }
+            }
+
+            check_required()
+
+            that.opts = opts
+            that.params = params
+            return that
         }
-        for (var k in info) {
-            var v = info[k];
-            if ('required' in v && v.required && !(v.name in opts)) {
-                help();
-                throw lib.error({msg : "Option is required", option : + v.name});
+
+        that.parse = function(argv) {
+            try {
+                return parse(argv)
+            } catch (err) {
+                help(argv)
+                throw err
             }
         }
-        return { opts : opts, params : params };
-    };
+        return that
+    }
+
     lib.sys = {
-        optarg : options,
+        getopt : options,
         date : function() { return new Date() }
-    };
-}).call(this);
+    }
+
+}).call(this)

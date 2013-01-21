@@ -396,15 +396,15 @@ var parse_git_config = function(cfg) {
 };
 
 (function() {
-    var cmdline = lib.sys.optarg(qtscript.script.args, {
-        V : { name : "vault", has_param : true, required : true },
-        H : { name : "home", has_param : true },
-        g : { name : "git_cfg", has_param : true },
-        a : { name : "action", has_param : true, required : true },
-        c : { name : "config_path", has_param : true },
-        m : { name : "message", has_param : true},
-        t : { name : "tag", has_param : true }
-    });
+    var cmdline = sys.getopt({
+        vault : { short_ : "V", long_ : "vault", has_param : true, required : true },
+        home : { short_ : "H", long_ : "home", has_param : true },
+        git_cfg : { short_ : "g", long_ : "git-config", has_param : true },
+        action : { short_ : "a", long_ : "action", has_param : true, required : true },
+        config_path : { short_ : "c", long_ : "config-path", has_param : true },
+        message : { short_ : "m", long_ : "message", has_param : true},
+        tag : { short_ : "t", long_ : "tag", has_param : true }
+    }).parse(qtscript.script.args);
 
     var vault = mk_vault(cmdline.opts.vault);
     var action = cmdline.opts.action;
