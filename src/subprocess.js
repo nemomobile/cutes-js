@@ -34,10 +34,11 @@
 
     that.process = function(presets) {
         var p = qprocess()
-        var that = { stdout : function() { return p.readAllStandardOutput() },
-                     stderr : function() { return p.readAllStandardError() },
-                     returncode : function() { return p.exitCode() }
-                   }
+        var that = {
+            stdout : function() { return p.readAllStandardOutput() },
+            stderr : function() { return p.readAllStandardError() },
+            returncode : function() { return p.exitCode() }
+        }
         if (presets) {
             var cwd = presets['cwd']
             if (cwd)
@@ -50,7 +51,7 @@
         }
 
         that.system = function(cmd, args) {
-            var p = that.popen(cmd, args)
+            that.popen(cmd, args)
             p.waitForFinished()
             return p
         }
@@ -60,14 +61,18 @@
         }
 
         var check_call = function(cmd, args) {
-            var p = that.system(cmd, args)
-            if (p.exitCode())
+            that.system(cmd, args)
+            if (p.exitStatus() != QProcess.NormalExit || p.exitCode()) {
+                print(that.stderr())
                 throw lib.error({ msg : "Process returned non-zero",
                                   cmd : cmd,
                                   args : args,
                                   rc : p.exitCode(),
-                                  stderr : p.readAllStandardError()});
-            return p.exitCode();
+                                  status : p.exitStatus(),
+                                  stderr : that.stderr(),
+                                  stdout : that.stdout()})
+            }
+            return p.exitCode()
         }
 
         that.check_call = function(cmd, args) {
@@ -75,8 +80,8 @@
         }
 
         that.check_output = function(cmd, args) {
-            var p = check_call(cmd, args)
-            return p.readAllStandardOutput();
+            check_call(cmd, args)
+            return that.stdout()
         }
         return that;
     }
