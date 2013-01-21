@@ -23,8 +23,15 @@
  */
 
 (function() {
+    if (lib.os)
+        return;
+
+    var qdir = function(path) { return new QDir(path) }
+    var qfileinfo = function(path) { return new QFileInfo(path) }
+    var qfile = function(path) { return new QFile(path) }
+
     var mkdir = function(path) {
-        var d = new QDir(path);
+        var d = qdir(path);
         if (d.exists())
             return false;
 
@@ -37,15 +44,8 @@
         return true;
     };
 
-    var system = function(cmd) {
-        var p = new QProcess();
-        p.start(cmd, [].slice.call(arguments, 1));
-        p.waitForFinished();
-        return p.exitStatus();
-    };
-
     var read_file = function(file_name) {
-        var f = new QFile(file_name);
+        var f = qfile(file_name);
         f.open(QIODevice.ReadOnly);
         try {
             return f.readAll();
@@ -54,9 +54,46 @@
         }
     };
 
+    var write_file = function(file_name, data) {
+        var f = qfile(file_name);
+        f.open(QIODevice.WriteOnly);
+        try {
+            return f.write(new QByteArray(data));
+        } finally {
+            f.close();
+        }
+    };
+
+    var path = (function() {
+        var that = function() { return [].slice.call(arguments).join('/') }
+
+        that.exists = function(p) { return qfileinfo(p).exists() }
+        that.isfile = function(p) { return qfileinfo(p).isFile() }
+        that.isdir = function(p) { return qfileinfo(p).isDirectory() }
+        that.relative = function(p, dirname) {
+            return qdir(dirname).relativeFilePath(p)
+        }
+        that.dirname = function(p) {
+            return qfileinfo(p).dir().path()
+        }
+        return that;
+    })();
+
     lib.os = {
         mkdir : mkdir,
-        system : system,
-        read_file : read_file
+        read_file : read_file,
+        write_file : write_file,
+        system : function(cmd, args) { return lib.subprocess.call(cmd, args) },
+        rmtree : function (path) { return lib.os.system("rm", ["-rf", path]) },
+        path : path,
+        rename : function(from, to) {
+            print("MV", from, to)
+            return qdir(path.dirname(from)).rename(from, to)
+        },
+        unlink : function(what) { return qdir(path.dirname(what)).remove(what) },
+        symlink : function(tgt, link) {
+            print("LN", tgt, link)
+            return lib.os.system("ln", ["-s", tgt, link])
+        }
     };
-}).call(this);
+}).call();

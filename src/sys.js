@@ -23,6 +23,9 @@
  */
 
 (function() {
+    if (lib.sys)
+        return;
+
     var options = function(argv, info) {
         var params = [];
         var opts = {};
@@ -85,5 +88,8 @@
         }
         return { opts : opts, params : params };
     };
-    lib.sys = { optarg : options };
+    lib.sys = {
+        optarg : options,
+        date : function() { return new Date() }
+    };
 }).call(this);
