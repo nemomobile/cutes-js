@@ -248,9 +248,16 @@ var mk_vault = function(path) {
             debug.info(subprocess.check_output(config.script, args))
         }
 
-        var save_blob = function(item) {
-            var git_path = item.src
-            var sha = git.hash_object(git_path);
+        var delete_blob = function(status) {
+            git.rm(status.src)
+        }
+
+        var save_blob = function(status) {
+            var git_path = status.src
+            if (status.index == ' ' && status.tree == 'D')
+                return delete_blob(status)
+
+            var sha = git.hash_object(git_path)
             var that = { root : os.path(git.path(), '.git', 'blobs'),
                          prefix : sha.slice(0, 2),
                          id : sha.slice(2) }
