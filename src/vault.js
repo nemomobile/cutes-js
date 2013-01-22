@@ -371,11 +371,16 @@ var mk_vault = function(path) {
             git.checkout(['master'])
         }
     }
+    var list_snapshots = function(config, options) {
+        git.tag([])
+        print(git.stdout())
+    }
 
     return Object.create({
         init : init,
         backup : backup,
-        restore : restore
+        restore : restore,
+        list_snapshots : list_snapshots
     });
 };
 
@@ -421,6 +426,9 @@ var parse_git_config = function(cfg) {
         break;
       case 'restore':
         vault.restore(modules_config(), cmdline.opts);
+        break;
+      case 'list-snapshots':
+        vault.list_snapshots(modules_config(), cmdline.opts);
         break;
     default:
         throw lib.error({ msg : "Unknown action", action : action});
