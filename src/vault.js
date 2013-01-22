@@ -325,25 +325,38 @@ var mk_vault = function(path) {
     }
 
     var backup = function(config, options) {
-        start_time = sys.date()
-        var head = git.rev_parse('master')
+        var head, head_before_module, name
         var res = { succeeded :[], failed : [] }
-        var head_before_module = head
-        for (var name in config) {
+
+        var rollback = function(name) {
+            err.module = name
+            debug.error("Failed to backup " + name + ", reason: " + err.toString())
+            res.failed.push(name)
+            // rollback
+            git.reset(['--hard', head_before_module], true)
+            git.clean(['-fd'])
+        }
+
+        var backup_module = function(name) {
             try {
                 module(name, config[name], options).backup()
                 res.succeeded.push(name)
                 head_before_module = git.rev_parse('master')
             } catch (err) {
-                err.module = name
-                print("Failed to backup " + name + ", reason: " + err.toString())
-                res.failed.push(name)
-                // rollback
-                git.reset(['--hard', head_before_module], true)
-                git.clean(['-fd'])
-                debug.rethrow(err)
+                rollback(name)
             }
         }
+
+        start_time = sys.date()
+        head = git.rev_parse('master')
+        head_before_module = head
+
+        if (options.module)
+            backup_module(options.module)
+        else
+            for (name in config)
+                backup_module(name)
+
         git.tag([start_time.toGitTag()])
         git.tag(['-d', 'latest'], true)
         git.tag(['latest'])
