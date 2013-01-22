@@ -345,6 +345,8 @@ var mk_vault = function(path) {
             }
         }
         git.tag([start_time.toGitTag()])
+        git.tag(['-d', 'latest'], true)
+        git.tag(['latest'])
         return res;
     };
 
