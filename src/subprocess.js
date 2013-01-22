@@ -63,7 +63,7 @@
         var check_call = function(cmd, args) {
             that.system(cmd, args)
             if (p.exitStatus() != QProcess.NormalExit || p.exitCode()) {
-                print(that.stderr())
+                lib.debug.error(that.stderr())
                 throw lib.error({ msg : "Process returned non-zero",
                                   cmd : cmd,
                                   args : args,

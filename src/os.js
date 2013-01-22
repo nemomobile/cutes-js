@@ -87,12 +87,12 @@
         rmtree : function (path) { return lib.os.system("rm", ["-rf", path]) },
         path : path,
         rename : function(from, to) {
-            print("MV", from, to)
+            lib.debug.debug("MV", from, to)
             return qdir(path.dirname(from)).rename(from, to)
         },
         unlink : function(what) { return qdir(path.dirname(what)).remove(what) },
         symlink : function(tgt, link) {
-            print("LN", tgt, link)
+            lib.debug.debug("LN", tgt, link)
             return lib.os.system("ln", ["-s", tgt, link])
         }
     };

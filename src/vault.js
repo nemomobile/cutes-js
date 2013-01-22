@@ -33,10 +33,7 @@ var os = lib.os
 var sys = lib.sys
 var subprocess = lib.subprocess
 var util = lib.util
-
-var debug = (function() {
-    return Object.create({ rethrow : function(err) { throw err }})
-})();
+var debug = lib.debug
 
 Date.prototype.toGitTag = function() {
     return this.toISOString().replace(/:/g, '-')
@@ -46,7 +43,7 @@ var mk_git = function(storage_path) {
     var p = subprocess.process({ cwd : storage_path })
 
     var execute = function(cmd, params, can_fail) {
-        print("git", cmd, params);
+        debug.debug("git", cmd, params);
         var fn = can_fail ? p.call : p.check_call
         return fn('git', params ? [cmd].concat(params) : [cmd])
     };
@@ -241,7 +238,7 @@ var mk_vault = function(path) {
                         '--dir', data_dir,
                         '--bin-dir', blobs_dir,
                        '--home-dir', options.home ]
-            print(subprocess.check_output(config.script, args))
+            debug.info(subprocess.check_output(config.script, args))
         }
 
         var save_blob = function(item) {
@@ -250,17 +247,17 @@ var mk_vault = function(path) {
             var that = { root : os.path(git.path(), '.git', 'blobs'),
                          prefix : sha.slice(0, 2),
                          id : sha.slice(2) }
-            print("ID ", that.id)
+            debug.debug("ID ", that.id)
             mkdir(that.root)
             var blob_dir = os.path(that.root, that.prefix)
             mkdir(blob_dir)
             var blob_fname = os.path(blob_dir, that.id)
             var link_fname = os.path(git.path(), git_path)
             if (os.path.isfile(blob_fname)) {
-                print("unlink")
+                debug.debug("unlink")
                 os.unlink(link_fname)
             } else {
-                print("rename")
+                debug.debug("rename")
                 os.rename(link_fname, blob_fname)
             }
             os.symlink(os.path.relative(blob_fname, os.path.dirname(link_fname)),
