@@ -26,6 +26,9 @@
     if (lib.os)
         return;
 
+    qtscript.eval("subprocess.js")
+    qtscript.eval("util.js")
+
     var qdir = function(path) { return new QDir(path) }
     var qfileinfo = function(path) { return new QFileInfo(path) }
     var qfile = function(path) { return new QFile(path) }
@@ -84,7 +87,10 @@
         read_file : read_file,
         write_file : write_file,
         system : function(cmd, args) { return lib.subprocess.call(cmd, args) },
-        rmtree : function (path) { return lib.os.system("rm", ["-rf", path]) },
+        rmtree : function (path) { return this.system("rm", ["-rf", path]) },
+        cptree : function(src, dst) {
+            return lib.os.system("cp", ["-r", src, dst])
+        },
         path : path,
         rename : function(from, to) {
             lib.debug.debug("MV", from, to)
