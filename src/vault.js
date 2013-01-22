@@ -100,6 +100,11 @@ var mk_git = function(storage_path) {
         return execute('add', params.concat([path]), can_fail)
     }
 
+    var rm = function(path, params, can_fail) {
+        params = params || []
+        return execute('rm', params.concat([path]), can_fail)
+    }
+
     var commit = function(msg, params, can_fail) {
         params = params || []
         return execute('commit', params.concat(['-m', msg]), can_fail)
@@ -130,7 +135,7 @@ var mk_git = function(storage_path) {
         var rc = execute(name, [].slice.call(arguments), can_fail);
         if (!rc)
             return p.stdout();
-        
+
         return undefined;
     };
 
@@ -159,14 +164,16 @@ var mk_git = function(storage_path) {
         return execute('tag', params || [], can_fail)
     };
 
-    var checkout = function(params, can_fail) {
-        return execute('checkout', params || [], can_fail)
+    var checkout = function(commit, params, can_fail) {
+        params = params || []
+        return execute('checkout', params.concat([commit]), can_fail)
     };
 
     return {
         status : status,
         config : config,
-        add: add,
+        add : add,
+        rm : rm,
         commit : commit,
         init : basic_cmd('init'),
         reset : basic_cmd('reset'),
