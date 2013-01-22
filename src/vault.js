@@ -353,24 +353,30 @@ var mk_vault = function(path) {
     var restore = function(config, options) {
         var res = { succeeded :[], failed : [] }
 
-        var restore_or_rollback = function (name) {
+        var restore_module = function (name) {
             try {
                 module(name, config[name], options).restore()
                 res.succeeded.push(name);
             } catch (err) {
                 err.module = name
-                print("Failed to restore " + name + ", reason: " + err.toString());
-                res.failed.push(name);
-                debug.rethrow(err);
+                debug.error("Failed to restore " + name
+                            + ", reason: " + err.toString())
+                res.failed.push(name)
             }
         }
 
+        if (!options.tag)
+            throw lib.error({msg : "tag should be provided for restore"})
+
         try {
-            git.checkout([options.tag])
-            for (var name in config)
-                restore_or_rollback(name)
+            git.checkout(options.tag)
+            if (options.module)
+                restore_module(options.module)
+            else
+                for (var name in config)
+                    restore_module(name)
         } finally {
-            git.checkout(['master'])
+            git.checkout('master')
         }
     }
     var list_snapshots = function(config, options) {
