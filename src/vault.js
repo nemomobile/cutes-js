@@ -284,6 +284,18 @@ var mk_vault = function(path) {
         }
 
         var backup = function() {
+            var is_tree_dirty = function(status) {
+                return util.first(status, function() {
+                    return !this.is_tree_clean()
+                }) < status.length
+            }
+
+            var isnt_commited = function(status) {
+                return util.first(status, function() {
+                    return !this.is_clean()
+                }) < status.length
+            }
+
             os.rmtree(data_dir)
             os.rmtree(blobs_dir)
 
@@ -299,28 +311,27 @@ var mk_vault = function(path) {
 
             // commit data
             status = git.status(root_dir)
-            if (status.length) {
-                git.add(root_dir, ['-A']);
-                status = git.status(root_dir);
-                if (util.first(status, function() {
-                    return !this.is_tree_clean()
-                }) < status.length)
-                    throw lib.error({msg : "Dirty tree",
-                                     dir : root_dir,
-                                     status : status_dump(status) })
-                
-                git.commit(name + " " + start_time.toGitTag());
-
-                status = git.status(root_dir)
-                if (util.first(status, function() {
-                    return !this.is_clean()
-                }) < status.length)
-                    throw lib.error({msg : "dirty",
-                                     dir : root_dir,
-                                     status : status_dump(status)})
+            if (!status.length) {
+                debug.info("Nothing to backup for " + name)
+                return
             }
 
-        };
+            git.add(root_dir, ['-A']);
+            status = git.status(root_dir)
+            if (is_tree_dirty(status))
+                throw lib.error({msg : "Dirty tree",
+                                 dir : root_dir,
+                                 status : status_dump(status) })
+
+            git.commit(name + " " + start_time.toGitTag());
+
+            status = git.status(root_dir)
+            if (isnt_commited(status))
+                throw lib.error({msg : "Not fully commited",
+                                 dir : root_dir,
+                                 status : status_dump(status)})
+
+        }
         return { backup : backup, restore : restore }
     }
 
