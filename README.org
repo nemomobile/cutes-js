@@ -42,11 +42,7 @@ can be separated to data itself and blobs:
   formats etc.
 
 So, application communication with backup world is described in terms
-of the following operations:
-
-- data: export/import/clear
-
-- blobs: save/load/clear
+of the following operations: export/import/clear
 
 ** Backup API
 
@@ -65,27 +61,5 @@ Options:
 - --action -- which action should be executed. Possible values are:
   import, export, clear.
 
-** Examples
+** TODO Examples
 
-Now this project is in the prototype stage, so most of configuration
-is hard-coded and examples directory contains some content to test
-concepts.
-
-To try backup in action:
-
-- optional: create empty directory, it will be backup storage (vault-dir)
-
-- enter into code repository src dir
-
-- first run:
-
-# ./backup <vault-dir> ../examples/data
-
-- then
-
-# ./backup <vault-dir> ../examples/data2
-
-vault-dir now contains git repository. There is directory vault-blobs
-inside git storage to store blobs, commits, corresponding to 2
-consequent states (backups) of 2 example modules (openclipart and
-contacs) and tags, marking backups themselves.
