@@ -4,6 +4,7 @@
 
     qtscript.eval("subprocess.js")
     qtscript.eval("util.js")
+    var debug = lib.debug
 
     var rename_ops = { "R" : "R", "C" : "C" }
 
