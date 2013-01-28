@@ -125,7 +125,7 @@
 
         var checkout = function(commit, params, can_fail) {
             params = params || []
-            return execute('checkout', params.concat([commit]), can_fail)
+            return execute('checkout', [commit].concat(params), can_fail)
         }
 
         return {
@@ -141,6 +141,8 @@
             rev_parse : rev_parse,
             tag : tag,
             checkout : checkout,
+            show : cmd_basic_result('show'),
+            execute : execute, // any git command
             returncode : function() { return ps.returncode() },
             stdout : function() { return ps.stdout() },
             stderr : function() { return ps.stderr() },
