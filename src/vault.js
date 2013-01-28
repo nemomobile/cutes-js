@@ -23,7 +23,6 @@
  */
 
 (function () {
-
     qtscript.use("qt.core")
     qtscript.eval("sys.js")
     qtscript.eval("os.js")
@@ -46,9 +45,12 @@
 
         var git = lib.git(path)
         var storage = new QDir(os.path(path,".git"))
-        var start_time
+        var message_file = os.path(path, ".message")
+        var start_time_tag
 
         var init = function(config) {
+            config["status.showUntrackedFiles"] = "all"
+
             if (!os.mkdir(path))
                 throw lib.error({ msg : "Can't init vault", path : path,
                                   reason : "directory already exists" });
@@ -66,6 +68,7 @@
                 git.add(anchor_file)
                 git.commit('anchor')
                 git.tag(['anchor'])
+                git.tag(['latest'])
             } catch (err) {
                 os.rmtree(path)
                 throw err
@@ -84,18 +87,24 @@
             }).join(', ')
         }
 
-        var module = function(name, config, options) {
+        var mk_module = function(config, home) {
+            var name = config.name
             var root_dir = os.path(git.path(), name)
             var data_dir = os.path(root_dir, "data")
             var blobs_dir = os.path(root_dir, "blobs")
             var blobs_rel = os.path(name, "blobs")
             var mkdir = os.mkdir;
 
+            var reset = function(treeish) {
+                git.clean(['-fd', '--', root_dir])
+                git.checkout(treeish, ['--', root_dir])
+            }
+
             var exec_script = function(action) {
                 var args = ['--action', action,
                             '--dir', data_dir,
                             '--bin-dir', blobs_dir,
-                            '--home-dir', options.home ]
+                            '--home-dir', home ]
                 debug.info(subprocess.check_output(config.script, args))
             }
 
@@ -177,7 +186,7 @@
                                      dir : root_dir,
                                      status : status_dump(status) })
 
-                git.commit(name + " " + start_time.toGitTag());
+                git.commit(">" + name);
 
                 status = git.status(root_dir)
                 if (isnt_commited(status))
@@ -186,55 +195,64 @@
                                      status : status_dump(status)})
 
             }
-            return { backup : backup, restore : restore }
+            return { backup : backup,
+                     restore : restore,
+                     reset : reset }
         }
 
-        var backup = function(config, options) {
-            var head, head_before_module, name
+        var backup = function(config, home, options) {
+            var head, name
             var res = { succeeded :[], failed : [] }
 
-            var rollback = function(name) {
-                err.module = name
-                debug.error("Failed to backup " + name + ", reason: " + err.toString())
-                res.failed.push(name)
-                git.reset(['--hard', head_before_module], true)
-                git.clean(['-fd'])
-            }
-
             var backup_module = function(name) {
+                var head_before = git.rev_parse('master')
+                config[name].name = name
+                var module = mk_module(config[name], home)
+
                 try {
-                    module(name, config[name], options).backup()
+                    module.backup()
                     res.succeeded.push(name)
-                    head_before_module = git.rev_parse('master')
                 } catch (err) {
-                    rollback(name)
+                    err.module = name
+                    debug.error("Failed to backup " + name + ", reason: "
+                            + err.toString())
+                    res.failed.push(name)
+                    module.reset(head_before)
                 }
             }
 
-            start_time = sys.date()
-            head = git.rev_parse('master')
-            head_before_module = head
+            start_time_tag = sys.date().toGitTag()
 
-            if (options.module) {
+            if (options && options.module) {
                 backup_module(options.module)
             } else {
-                for (name in config)
+                for (name in config) {
                     backup_module(name)
+                }
             }
 
-            git.tag([start_time.toGitTag()])
+            message = ((options && options.message)
+                       ? options.message : start_time_tag)
+            os.write_file(message_file, message)
+            git.add(".message")
+            git.commit([start_time_tag, message].join('\n'))
+
+            git.tag([start_time_tag])
             git.tag(['-d', 'latest'], true)
             git.tag(['latest'])
             return res
         };
 
-        var restore = function(config, options) {
+        var restore = function(config, home, tag, options) {
             var res = { succeeded :[], failed : [] }
+            var name
 
-            var restore_module = function (name) {
+            var restore_module = function(name) {
+                config[name].name = name
+                var module = mk_module(config[name], home)
                 try {
-                    module(name, config[name], options).restore()
-                    res.succeeded.push(name);
+                    module.restore()
+                    res.succeeded.push(name)
                 } catch (err) {
                     err.module = name
                     debug.error("Failed to restore " + name
@@ -243,35 +261,35 @@
                 }
             }
 
-            if (!options.tag)
-                throw lib.error({msg : "tag should be provided for restore"})
+            if (!tag)
+                throw lib.error({msg : "tag should be provided to restore"})
 
             try {
-                git.checkout(options.tag)
-                if (options.module)
+                git.checkout(tag)
+                if (options && options.module)
                     restore_module(options.module)
                 else
-                    for (var name in config)
+                    for (name in config)
                         restore_module(name)
             } finally {
                 git.checkout('master')
             }
         }
-        var list_snapshots = function(config, options) {
+        var list_snapshots = function() {
             git.tag([])
-            print(git.stdout())
+            return git.stdout().split('\n')
         }
 
         return Object.create({
             init : init,
             backup : backup,
             restore : restore,
-            list_snapshots : list_snapshots
+            list_snapshots : list_snapshots,
         })
     }
 
-    var parse_git_config = function(cfg) {
-        var res = {"status.showUntrackedFiles" : "all"}
+    var parse_kv_pairs = function(cfg) {
+        var res = {}
         var pairs, i, kv
         if (cfg) {
             util.foreach(cfg.split(','), function(v) {
@@ -283,29 +301,33 @@
         return res
     }
 
-    mk_vault.execute = function(opts) {
-        var vault = mk_vault(opts.vault)
-        var action = opts.action
+    mk_vault.execute = function(options) {
+        var vault = mk_vault(options.vault)
+        var action = options.action
         var res
 
-        var modules_config = function() {
-            var config = opts.config_path
-            if (!config)
+        var config = function() {
+            var src = options.config_path
+            if (!src)
                 throw lib.error({ msg : "Need config", action : action })
-            return JSON.parse(os.read_file(config))
+            return JSON.parse(os.read_file(src))
         }
+
         switch (action) {
         case 'init':
-            res = vault.init(parse_git_config(opts.git_cfg))
+            res = vault.init(parse_kv_pairs(options.git_config))
             break;
         case 'backup':
-            res = vault.backup(modules_config(), opts)
+            res = vault.backup(config(), options.home,
+                               {module : options.module})
             break
         case 'restore':
-            res = vault.restore(modules_config(), opts)
+            res = vault.restore(config(), options.home, options.tag,
+                                {module : options.module})
             break
         case 'list-snapshots':
-            res = vault.list_snapshots(modules_config(), opts)
+            res = vault.list_snapshots()
+            print(res.join('\n'))
             break
         default:
             throw lib.error({ msg : "Unknown action", action : action})
@@ -313,6 +335,6 @@
         }
         return res
     }
-    
+
     lib.vault = mk_vault
 }).call(this)
