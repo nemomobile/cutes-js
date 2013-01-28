@@ -36,7 +36,8 @@
         config_path : { short_ : "c", long_ : "config-path", has_param : true },
         message : { short_ : "m", long_ : "message", has_param : true},
         tag : { short_ : "t", long_ : "tag", has_param : true },
-        module : { short_ : "M", long_ : "module", has_param : true }
+        module : { short_ : "M", long_ : "module", has_param : true },
+        data : { short_ : "d", long_ : "data", has_param : true }
     }).parse(qtscript.script.args)
 
     return lib.vault.execute(cmdline.opts)

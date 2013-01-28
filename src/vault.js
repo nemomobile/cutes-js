@@ -87,6 +87,50 @@
             }).join(', ')
         }
 
+        var mk_config = function() {
+            var config_fname = ".config"
+            var config_path = os.path(path, config_fname)
+            var config, res
+            if (os.path.isfile(config_path))
+                config = JSON.parse(os.read_file(config_path))
+            else
+                config = {}
+
+            var save = function() {
+                os.write_file(config_path, JSON.stringify(config, null, '\t'))
+            }
+
+            res = Object.create(config)
+
+            res.mutable = function() {
+                var that = Object.create(config)
+                that.add = function(desc) {
+                    var name = desc.name
+                    if (!(name && desc.script))
+                        throw lib.error({msg : "Module description should contain"
+                                         + " name and script"})
+                    config[name] = desc
+                    save()
+                    git.add(config_fname)
+                    git.commit("+" + name)
+                }
+                that.rm = function(name) {
+                    if (name && (name in config)) {
+                        delete config[name]
+                        save()
+                        git.rm(config_fname)
+                        git.commit("-" + name)
+                    } else {
+                        throw lib.error({ msg : "Can't delete non-existing module",
+                                          name : name })
+                    }
+                }
+                return that
+            }
+
+            return res
+        }
+
         var mk_module = function(config, home) {
             var name = config.name
             var root_dir = os.path(git.path(), name)
@@ -285,6 +329,7 @@
             backup : backup,
             restore : restore,
             list_snapshots : list_snapshots,
+            config : mk_config
         })
     }
 
@@ -329,6 +374,16 @@
             res = vault.list_snapshots()
             print(res.join('\n'))
             break
+        case 'module-add':
+            if (!options.data)
+                throw lib.error({ action : action, msg : "Needs data" })
+            res = vault.config().mutable().add(parse_kv_pairs(options.data))
+            break;
+        case 'module-rm':
+            if (!options.module)
+                throw lib.error({ action : action, msg : "Needs module name" })
+            res = vault.config().mutable().rm(options.module)
+            break;
         default:
             throw lib.error({ msg : "Unknown action", action : action})
             break
