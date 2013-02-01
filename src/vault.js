@@ -23,13 +23,13 @@
  */
 
 (function () {
-    qtscript.use("qt.core")
-    qtscript.eval("sys.js")
-    qtscript.eval("os.js")
-    qtscript.eval("subprocess.js")
-    qtscript.eval("json2.js")
-    qtscript.eval("util.js")
-    qtscript.eval("git.js")
+    qtscript.load("qtcore.js")
+    qtscript.load("sys.js")
+    qtscript.load("os.js")
+    qtscript.load("subprocess.js")
+    qtscript.load("json2.js")
+    qtscript.load("util.js")
+    qtscript.load("git.js")
 
     var os = lib.os
     var sys = lib.sys

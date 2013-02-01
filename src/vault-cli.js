@@ -23,8 +23,8 @@
  */
 
 (function() {
-    qtscript.eval("sys.js")
-    qtscript.eval("vault.js")
+    qtscript.load("sys.js")
+    qtscript.load("vault.js")
     var cmdline = lib.sys.getopt({
         vault : { short_ : "V", long_ : "vault"
                   , has_param : true, required : true },
@@ -39,6 +39,5 @@
         module : { short_ : "M", long_ : "module", has_param : true },
         data : { short_ : "d", long_ : "data", has_param : true }
     }).parse(qtscript.script.args)
-
     return lib.vault.execute(cmdline.opts)
 }).call(this)

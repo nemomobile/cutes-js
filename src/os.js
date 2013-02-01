@@ -26,8 +26,8 @@
     if (lib.os)
         return;
 
-    qtscript.eval("subprocess.js")
-    qtscript.eval("util.js")
+    qtscript.load("subprocess.js")
+    qtscript.load("util.js")
 
     var qdir = function(path) { return new QDir(path) }
     var qfileinfo = function(path) { return new QFileInfo(path) }

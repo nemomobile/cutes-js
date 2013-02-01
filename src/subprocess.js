@@ -26,8 +26,8 @@
     if (lib.subprocess)
         return;
 
-    qtscript.use("qt.core")
-    qtscript.eval("util.js")
+    qtscript.load("qtcore.js")
+    qtscript.load("util.js")
 
     var that = {};
     var qprocess = function() { return new QProcess() }
