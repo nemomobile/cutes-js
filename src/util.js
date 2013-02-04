@@ -37,11 +37,6 @@
         return this;
     };
 
-    QByteArray.method('toString', function() {
-        var s = new QTextStream(this, QIODevice.ReadOnly)
-        return s.readAll()
-    })
-
     var foreach = function(arr, fn) {
         var i;
         for (i = 0; i < arr.length; ++i)
