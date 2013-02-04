@@ -92,10 +92,7 @@
         var exec_stdout = function(name, params, can_fail) {
             if (params === undefined)
                 params = []
-            if (typeof params !== 'array')
-                throw lib.error({msg : "invalid param, need array",
-                                 param : params})
-            var rc = execute(name, [].slice.call(arguments), can_fail)
+            var rc = execute(name, params, can_fail)
             return (rc ? undefined : ps.stdout())
         }
 
