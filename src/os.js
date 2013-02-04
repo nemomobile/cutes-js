@@ -100,6 +100,7 @@
         symlink : function(tgt, link) {
             lib.debug.debug("LN", tgt, link)
             return lib.os.system("ln", ["-s", tgt, link])
-        }
+        },
+        home : function() { return QDir.homePath() }
     };
 }).call();
