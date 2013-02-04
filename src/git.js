@@ -139,6 +139,7 @@
             tag : tag,
             checkout : checkout,
             show : cmd_basic_result('show'),
+            notes : cmd_basic_result('notes'),
             execute : execute, // any git command
             returncode : function() { return ps.returncode() },
             stdout : function() { return ps.stdout() },
