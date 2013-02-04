@@ -46,7 +46,7 @@
     var first = function(arr, fn, start) {
         var i;
         for (i = (start || 0); i < arr.length; ++i)
-            if (fn.apply(arr[i]))
+            if (fn(arr[i]))
                 break;
         return i;
     }
@@ -63,8 +63,20 @@
         var i;
         var res = [];
         for (i = 0; i < arr.length; ++i)
-            res.push(fn.apply(arr[i]));
+            res.push(fn(arr[i]));
         return res;
+    }
+
+    var filter = function(arr, fn) {
+        var i, item, res, len
+        len = arr.length
+        res = []
+        for (i = 0; i < len; ++i) {
+            item = arr[i]
+            if (fn(item))
+                res.push(item)
+        }
+        return res
     }
 
     Function.method('curry', function() {
@@ -122,6 +134,7 @@
         is_all: all,
         foreach : foreach,
         map : map,
+        filter : filter,
         first : first,
         all : find_all
     };
