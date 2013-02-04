@@ -47,6 +47,7 @@
         var storage = new QDir(os.path(path,".git"))
         var message_file = os.path(path, ".message")
         var start_time_tag
+        var modules_config
 
         var init = function(config) {
             config["status.showUntrackedFiles"] = "all"
@@ -68,7 +69,7 @@
                 git.add(anchor_file)
                 git.commit('anchor')
                 git.tag(['anchor'])
-                git.tag(['latest'])
+                git.tag(['>latest'])
             } catch (err) {
                 os.rmtree(path)
                 throw err
@@ -76,17 +77,22 @@
         }
 
         var is_clean = function(status) {
-            return lib.util.first(status, function() {
-                return !this.is_clean
+            return lib.util.first(status, function(item) {
+                return !item.is_clean
             }) < status.length
         }
 
         var status_dump = function(status) {
-            return util.map(status, function() {
-                return this.toString()
+            return util.map(status, function(item) {
+                return item.toString()
             }).join(', ')
         }
 
+        /**
+         * load or initialize vault configuration describing
+         * registered backup modules. Configuration is read-only,
+         * mutable() method returns object to modify it
+         */
         var mk_config = function() {
             var config_fname = ".config"
             var config_path = os.path(path, config_fname)
@@ -100,10 +106,15 @@
                 os.write_file(config_path, JSON.stringify(config, null, '\t'))
             }
 
-            res = Object.create(config)
+            res = {}
 
+            res.modules = function() {
+                return config
+            }
+
+            /// create wrapper to change configuration
             res.mutable = function() {
-                var that = Object.create(config)
+                var that = Object.create(res)
                 that.add = function(desc) {
                     var name = desc.name
                     if (!(name && desc.script))
@@ -131,6 +142,14 @@
             return res
         }
 
+        /// lazy vault configuration loading/initialization
+        var init_config = function() {
+            if (modules_config == null)
+                modules_config = mk_config()
+            return modules_config
+        }
+
+        /// functionality related to specific module
         var mk_module = function(config, home) {
             var name = config.name
             var root_dir = os.path(git.path(), name)
@@ -140,10 +159,11 @@
             var mkdir = os.mkdir;
 
             var reset = function(treeish) {
-                git.clean(['-fd', '--', root_dir])
-                git.checkout(treeish, ['--', root_dir])
+                git.clean(['-fd', '--', name])
+                git.reset(['--hard', treeish])
             }
 
+            /// execute backup script registered for the module
             var exec_script = function(action) {
                 var args = ['--action', action,
                             '--dir', data_dir,
@@ -152,16 +172,12 @@
                 debug.info(subprocess.check_output(config.script, args))
             }
 
-            var delete_blob = function(status) {
-                git.rm(status.src)
-            }
-
             var save_blob = function(status) {
                 var target, sha, that
                 var blob_dir, blob_fname, link_fname
                 var git_path = status.src
                 if (status.index == ' ' && status.tree == 'D')
-                    return delete_blob(status)
+                    return git.rm(status.src)
 
                 sha = git.hash_object(git_path)
                 that = { root : os.path(git.path(), '.git', 'blobs'),
@@ -193,28 +209,28 @@
                 var status, i
 
                 var is_tree_dirty = function(status) {
-                    return util.first(status, function() {
-                        return !this.is_tree_clean()
+                    return util.first(status, function(item) {
+                        return !item.is_tree_clean()
                     }) < status.length
                 }
 
                 var isnt_commited = function(status) {
-                    return util.first(status, function() {
-                        return !this.is_clean()
+                    return util.first(status, function(item) {
+                        return !item.is_clean()
                     }) < status.length
                 }
 
+                // cleanup directories for data and blobs in
+                // the repository
                 os.rmtree(data_dir)
                 os.rmtree(blobs_dir)
-
                 mkdir(root_dir)
                 mkdir(data_dir)
                 mkdir(blobs_dir)
+
                 exec_script('export')
 
-                status = git.status(blobs_rel)
-                for (i = 0; i < status.length; ++i)
-                    save_blob(status[i])
+                util.foreach(git.status(blobs_rel), save_blob)
 
                 // commit data
                 status = git.status(root_dir)
@@ -244,22 +260,27 @@
                      reset : reset }
         }
 
-        var backup = function(config, home, options) {
+        var backup = function(home, options, on_progress) {
+            var config = init_config()
             var head, name
             var res = { succeeded :[], failed : [] }
+            var modules
 
             var backup_module = function(name) {
-                var head_before = git.rev_parse('master')
-                config[name].name = name
-                var module = mk_module(config[name], home)
+                var head_before = git.rev_parse('HEAD')
+                //config[name].name = name
+                var module = mk_module(config.modules()[name], home)
 
                 try {
+                    on_progress({ module: name, status: "begin" })
                     module.backup()
+                    on_progress({ module: name, status: "ok" })
                     res.succeeded.push(name)
                 } catch (err) {
                     err.module = name
                     debug.error("Failed to backup " + name + ", reason: "
                             + err.toString())
+                    on_progress({ module: name, status: "fail" })
                     res.failed.push(name)
                     module.reset(head_before)
                 }
@@ -267,69 +288,95 @@
 
             start_time_tag = sys.date().toGitTag()
 
-            if (options && options.module) {
-                backup_module(options.module)
+            git.checkout('master')
+
+            if (options && options.modules) {
+                util.foreach(options.modules, backup_module)
             } else {
-                for (name in config) {
+                for (name in config.modules()) {
                     backup_module(name)
                 }
             }
 
             message = ((options && options.message)
-                       ? options.message : start_time_tag)
+                       ? [start_time_tag, options.message].join('\n')
+                       : start_time_tag)
             os.write_file(message_file, message)
             git.add(".message")
             git.commit([start_time_tag, message].join('\n'))
 
-            git.tag([start_time_tag])
-            git.tag(['-d', 'latest'], true)
-            git.tag(['latest'])
+            git.tag(['>' + start_time_tag])
+            git.tag(['-d', '>latest'], true)
+            git.tag(['>latest'])
+            git.notes(['add', '-m', options.message || start_time_tag])
             return res
         };
 
-        var restore = function(config, home, tag, options) {
+        var set_current = function(tag) {
+            git.checkout('>' + tag)
+        }
+
+        var restore = function(home, options, on_progress) {
+            var config = init_config()
             var res = { succeeded :[], failed : [] }
             var name
 
             var restore_module = function(name) {
-                config[name].name = name
-                var module = mk_module(config[name], home)
+                //config[name].name = name
+                var module = mk_module(config.modules()[name], home)
                 try {
+                    on_progress({ module: name, status: "begin" })
                     module.restore()
+                    on_progress({ module: name, status: "ok" })
                     res.succeeded.push(name)
                 } catch (err) {
                     err.module = name
                     debug.error("Failed to restore " + name
                                 + ", reason: " + err.toString())
+                    on_progress({ module: name, status: "fail" })
                     res.failed.push(name)
                 }
             }
 
-            if (!tag)
-                throw lib.error({msg : "tag should be provided to restore"})
-
-            try {
-                git.checkout(tag)
-                if (options && options.module)
-                    restore_module(options.module)
-                else
-                    for (name in config)
-                        restore_module(name)
-            } finally {
-                git.checkout('master')
+            if (options && options.modules) {
+                util.foreach(options.modules, restore_module)
+            } else {
+                for (name in config.modules())
+                    restore_module(name)
             }
         }
+
+        var snapshot = {
+            toString : function() {
+                return [this.name, this.note].join(':')
+            }
+        }
+
         var list_snapshots = function() {
             git.tag([])
-            return git.stdout().split('\n')
+            var tags = util.filter(git.stdout().toString().split('\n'),
+                                   function(tag) {
+                                       return (tag[0] === '>')
+                                   })
+            return util.map(tags, function(tag) {
+                var res = Object.create(snapshot)
+                res.name = tag.substr(1)
+                res.note = git.notes(['show', tag]).toString().trim()
+                return res
+            })
         }
 
         return Object.create({
+            /// init vault git repository
             init : init,
+            /// perform backup
             backup : backup,
             restore : restore,
             list_snapshots : list_snapshots,
-            config : mk_config
+            /// returns repository configuration
+            config : init_config,
+            /// set repository head pointer to some snapshot
+            set_current : set_current
         })
     }
 
@@ -346,40 +393,52 @@
         return res
     }
 
+    var results = (function() {
+        var that = function(obj) {
+            if (obj.status === 'ok')
+                that.succeeded.push(obj.module)
+            else if (obj.status === 'fail')
+                that.failed.push(obj.module)
+
+        }
+        that.succeeded = []
+        that.failed = []
+        return that
+    }).call(this)
+
     mk_vault.execute = function(options) {
         var vault = mk_vault(options.vault)
         var action = options.action
         var res
-
-        var config = function() {
-            var src = options.config_path
-            if (!src)
-                throw lib.error({ msg : "Need config", action : action })
-            return JSON.parse(os.read_file(src))
-        }
 
         switch (action) {
         case 'init':
             res = vault.init(parse_kv_pairs(options.git_config))
             break;
         case 'backup':
-            res = vault.backup(config(), options.home,
-                               {module : options.module})
+            res = vault.backup(options.home,
+                               {modules : [options.module],
+                                message : options.message},
+                               results)
             break
         case 'restore':
-            res = vault.restore(config(), options.home, options.tag,
-                                {module : options.module})
+            if (!options.tag)
+                throw lib.error({msg : "tag should be provided to restore"})
+            vault.set_current(options.tag)
+            res = vault.restore(options.home,
+                                {modules : [options.module]},
+                                results)
             break
         case 'list-snapshots':
             res = vault.list_snapshots()
-            print(res.join('\n'))
+            print(util.map(res, function(s) { return s.name }).join('\n'))
             break
-        case 'module-add':
+        case 'register':
             if (!options.data)
                 throw lib.error({ action : action, msg : "Needs data" })
             res = vault.config().mutable().add(parse_kv_pairs(options.data))
             break;
-        case 'module-rm':
+        case 'unregister':
             if (!options.module)
                 throw lib.error({ action : action, msg : "Needs module name" })
             res = vault.config().mutable().rm(options.module)
