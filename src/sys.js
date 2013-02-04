@@ -26,6 +26,9 @@
     if (lib.sys)
         return;
 
+    qtscript.load('util.js')
+    var util = lib.util
+
     var options = function(data) {
         var that = { info : data }
         var short_ = {}
@@ -64,10 +67,14 @@
         var parse = function(argv) {
             var params = []
             var opts = {}
+            var i
+            var delim
 
             var get_long = function(i, name) {
                 var value = true
                 var div_pos = name.indexOf("=")
+                var var_name
+                var info
 
                 if (div_pos === 0)
                     throw lib.error({msg : '"=" can not be an long option name '})
@@ -76,11 +83,11 @@
                     value = name.substr(div_pos + 1)
                     name = name.substr(0, div_pos)
                 }
-                var var_name = long_[name]
+                var_name = long_[name]
                 if (var_name === undefined)
                     throw lib.error({msg : "Unknown long option", option : name })
 
-                var info = that.info[var_name]
+                info = that.info[var_name]
                 if (info.has_param) {
                     if (div_pos < 0) {
                         if (++i >= argv.length)
@@ -101,11 +108,12 @@
             }
 
             var get_short = function(i, name) {
+                var value, info
                 var var_name = short_[name]
                 if (name === undefined)
                     throw lib.error({msg : "Unknown short option", option : name })
-                var value = true
-                var info = that.info[var_name]
+                value = true
+                info = that.info[var_name]
                 if (info.has_param) {
                     if (++i >= argv.length)
                         throw lib.error({ msg : "Expected option data", option : name});
@@ -131,22 +139,27 @@
             }
 
             var check_required = function() {
-                for (var name in that.info) {
-                    var v = that.info[name]
+                var name, v
+                for (name in that.info) {
+                    v = that.info[name]
                     if (v.required && !(name in opts)) {
                         throw lib.error({msg : "Option is required", option : name});
                     }
                 }
             }
 
-            for (var i = 0; i < argv.length; ++i) {
-                var a = argv[i];
-                if (a.length >= 2 && a[0] == '-') {
-                    i = getopt(i, a);
-                } else {
-                    params.push(a);
+            var main = function() {
+                var i, a
+                for (i = 0; i < argv.length; ++i) {
+                    a = argv[i]
+                    if (a.length >= 2 && a[0] == '-') {
+                        i = getopt(i, a)
+                    } else {
+                        params.push(a)
+                    }
                 }
             }
+            main()
 
             check_required()
 
