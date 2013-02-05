@@ -69,8 +69,7 @@
                 git.add(anchor_file)
                 git.commit('anchor')
                 git.tag(['anchor'])
-                git.tag(['>latest'])
-            } catch (err) {
+             } catch (err) {
                 os.rmtree(path)
                 throw err
             }
@@ -86,6 +85,11 @@
             return util.map(status, function(item) {
                 return item.toString()
             }).join(', ')
+        }
+
+        var tag_as_latest = function() {
+            git.tag(['-d', '>latest'], true)
+            git.tag(['>latest'])
         }
 
         /**
@@ -144,9 +148,10 @@
 
         /// lazy vault configuration loading/initialization
         var init_config = function() {
-            if (modules_config == null)
-                modules_config = mk_config()
-            return modules_config
+            return mk_config()
+            // if (modules_config == null)
+            //     modules_config = mk_config()
+            // return modules_config
         }
 
         /// functionality related to specific module
@@ -165,6 +170,7 @@
 
             /// execute backup script registered for the module
             var exec_script = function(action) {
+                debug.debug('script', config.script, 'action', action)
                 var args = ['--action', action,
                             '--dir', data_dir,
                             '--bin-dir', blobs_dir,
@@ -306,8 +312,7 @@
             git.commit([start_time_tag, message].join('\n'))
 
             git.tag(['>' + start_time_tag])
-            git.tag(['-d', '>latest'], true)
-            git.tag(['>latest'])
+            tag_as_latest()
             git.notes(['add', '-m', options.message || start_time_tag])
             return res
         };
@@ -341,8 +346,10 @@
             if (options && options.modules) {
                 util.foreach(options.modules, restore_module)
             } else {
-                for (name in config.modules())
+                for (name in config.modules()) {
+                    debug.debug("Restoring", name)
                     restore_module(name)
+                }
             }
         }
 
@@ -361,7 +368,8 @@
             return util.map(tags, function(tag) {
                 var res = Object.create(snapshot)
                 res.name = tag.substr(1)
-                res.note = git.notes(['show', tag]).toString().trim()
+                var note = git.notes(['show', tag], true) || ""
+                res.note = note.toString().trim()
                 return res
             })
         }
@@ -374,9 +382,10 @@
             restore : restore,
             list_snapshots : list_snapshots,
             /// returns repository configuration
-            config : init_config,
+            config : mk_config,
             /// set repository head pointer to some snapshot
-            set_current : set_current
+            set_current : set_current,
+            checkout : function(treeish) { git.checkout(treeish) }
         })
     }
 
@@ -434,11 +443,13 @@
             print(util.map(res, function(s) { return s.name }).join('\n'))
             break
         case 'register':
+            vault.checkout('master')
             if (!options.data)
                 throw lib.error({ action : action, msg : "Needs data" })
             res = vault.config().mutable().add(parse_kv_pairs(options.data))
             break;
         case 'unregister':
+            vault.checkout('master')
             if (!options.module)
                 throw lib.error({ action : action, msg : "Needs module name" })
             res = vault.config().mutable().rm(options.module)
