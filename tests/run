@@ -3,8 +3,8 @@
 export QTSCRIPT_LIBRARY_PATH=../lib
 EXEC=cutes
 
-for i in test_os test_git; do
-    $EXEC $i.js
+for i in error os git; do
+    $EXEC test_$i.js
     if [ $? -ne 0 ]; then
         exit 1;
     fi
