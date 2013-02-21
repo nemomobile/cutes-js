@@ -1,0 +1,11 @@
+#!/bin/bash
+
+export QTSCRIPT_LIBRARY_PATH=../lib
+EXEC=cutes
+
+for i in test_os test_git; do
+    $EXEC $i.js
+    if [ $? -ne 0 ]; then
+        exit 1;
+    fi
+done
