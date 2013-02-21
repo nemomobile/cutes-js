@@ -22,444 +22,430 @@
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
-(function () {
-    qtscript.load("qtcore.js")
-    qtscript.load("sys.js")
-    qtscript.load("os.js")
-    qtscript.load("subprocess.js")
-    qtscript.load("json2.js")
-    qtscript.load("util.js")
-    qtscript.load("git.js")
+require("qtcore.js");
+require("json2.js");
 
-    var os = lib.os
-    var sys = lib.sys
-    var subprocess = lib.subprocess
-    var util = lib.util
-    var debug = lib.debug
+var sys = require("sys.js");
+var os = require("os.js");
+var subprocess = require("subprocess.js");
+var util = require("util.js");
+var error = require("error.js");
+var debug = require("debug.js");
+var git = require("git.js");
 
-    Date.method('toGitTag', function() {
-        return this.toISOString().replace(/:/g, '-')
-    })
+Date.method('toGitTag', function() {
+    return this.toISOString().replace(/:/g, '-');
+});
 
-    var mk_vault = function(path) {
+var mk_snapshots = function(vcs) {
+    var id = function(name) { return '>' + name; }
+    , is_id = function(id) { return id.length && id[0] === '>'; }
+    , name = function(id) {
+        return is_id(id) ? id.substr(1) : undefined;
+    }
+    , that = Object.create({
+        list : function() {
+            return util.map(util.filter(vcs.tags(), is_id), name);
+        },
+        note : function(treeish) { return vcs.notes.get(treeish); },
+        activate : function(name) { vcs.checkout(id(name)); },
+        tag : function(name) { vcs.tag([id(name)]); }
+    });
+    return that;
+};
 
-        var git = lib.git(path)
-        var storage = new QDir(os.path(path,".git"))
-        var message_file = os.path(path, ".message")
-        var start_time_tag
-        var modules_config
+var mk_vault = function(path) {
 
-        var init = function(config) {
-            config["status.showUntrackedFiles"] = "all"
+    var vcs = git(path);
+    var storage = os.path(path, ".git");
+    var blob_storage = os.path(storage, 'blobs');
+    var message_file = os.path(path, ".message");
+    var snapshots = mk_snapshots(vcs);
 
-            if (!os.mkdir(path))
-                throw lib.error({ msg : "Can't init vault", path : path,
-                                  reason : "directory already exists" });
+    var init = function(config) {
+        config["status.showUntrackedFiles"] = "all";
 
-            try {
-                if (git.init())
-                    throw lib.error({ msg : "Can't init git", path : path,
-                                      stderr : git.stderr()})
-                if (!storage.exists())
-                    throw lib.error({ msg : "Can't find .git", path : path,
-                                      stderr : git.stderr()})
-                git.config(config);
-                var anchor_file = os.path(path, '.vault')
-                os.write_file(anchor_file, sys.date().toGitTag())
-                git.add(anchor_file)
-                git.commit('anchor')
-                git.tag(['anchor'])
-             } catch (err) {
-                os.rmtree(path)
-                throw err
-            }
+        if (!os.mkdir(path))
+            error.raise({
+                msg : "Can't init vault",
+                path : path,
+                reason : "directory already exists" });
+
+        try {
+            if (vcs.init())
+                error.raise({
+                    msg : "Can't init git",
+                    path : path,
+                    stderr : vcs.stderr()});
+
+            if (!os.path.exists(storage))
+                error.raise({
+                    msg : "Can't find .git",
+                    path : path,
+                    stderr : vcs.stderr()});
+
+            vcs.set_config(config);
+            var anchor_file = os.path(path, '.vault');
+            os.write_file(anchor_file, sys.date().toGitTag());
+            vcs.add(anchor_file);
+            vcs.commit('anchor');
+            vcs.tag(['anchor']);
+            os.path.isdir(blob_storage) || os.mkdir(blob_storage);
+        } catch (err) {
+            os.rmtree(path);
+            throw err;
         }
+    };
 
-        var is_clean = function(status) {
-            return lib.util.first(status, function(item) {
-                return !item.is_clean
-            }) < status.length
-        }
+    var status_dump = function(status) {
+        return util.map(status, function(item) {
+            return item.toString();
+        }).join(', ');
+    };
 
-        var status_dump = function(status) {
-            return util.map(status, function(item) {
-                return item.toString()
-            }).join(', ')
-        }
+    var tag_as_latest = function() {
+        vcs.tag(['-d', '>latest'], true);
+        vcs.tag(['>latest']);
+    };
 
-        var tag_as_latest = function() {
-            git.tag(['-d', '>latest'], true)
-            git.tag(['>latest'])
-        }
+    /**
+     * load or initialize vault configuration describing
+     * registered backup modules. Configuration is read-only,
+     * mutable() method returns object to modify it
+     */
+    var mk_config = function() {
+        var config_fname = ".config";
+        var config_path = os.path(path, config_fname);
+        var config, res;
+        config = (os.path.isfile(config_path)
+                  ? JSON.parse(os.read_file(config_path))
+                  : {});
 
-        /**
-         * load or initialize vault configuration describing
-         * registered backup modules. Configuration is read-only,
-         * mutable() method returns object to modify it
-         */
-        var mk_config = function() {
-            var config_fname = ".config"
-            var config_path = os.path(path, config_fname)
-            var config, res
-            if (os.path.isfile(config_path))
-                config = JSON.parse(os.read_file(config_path))
-            else
-                config = {}
-
-            var save = function() {
-                os.write_file(config_path, JSON.stringify(config, null, '\t'))
-            }
-
-            res = {}
-
-            res.modules = function() {
-                return config
-            }
-
-            /// create wrapper to change configuration
-            res.mutable = function() {
-                var that = Object.create(res)
-                that.add = function(desc) {
-                    var name = desc.name
-                    if (!(name && desc.script))
-                        throw lib.error({msg : "Module description should contain"
-                                         + " name and script"})
-                    config[name] = desc
-                    save()
-                    git.add(config_fname)
-                    git.commit("+" + name)
-                }
-                that.rm = function(name) {
-                    if (name && (name in config)) {
-                        delete config[name]
-                        save()
-                        git.rm(config_fname)
-                        git.commit("-" + name)
-                    } else {
-                        throw lib.error({ msg : "Can't delete non-existing module",
-                                          name : name })
-                    }
-                }
-                return that
-            }
-
-            return res
-        }
-
-        /// lazy vault configuration loading/initialization
-        var init_config = function() {
-            return mk_config()
-            // if (modules_config == null)
-            //     modules_config = mk_config()
-            // return modules_config
-        }
-
-        /// functionality related to specific module
-        var mk_module = function(config, home) {
-            var name = config.name
-            var root_dir = os.path(git.path(), name)
-            var data_dir = os.path(root_dir, "data")
-            var blobs_dir = os.path(root_dir, "blobs")
-            var blobs_rel = os.path(name, "blobs")
-            var mkdir = os.mkdir;
-
-            var reset = function(treeish) {
-                git.clean(['-fd', '--', name])
-                git.reset(['--hard', treeish])
-            }
-
-            /// execute backup script registered for the module
-            var exec_script = function(action) {
-                debug.debug('script', config.script, 'action', action)
-                var args = ['--action', action,
-                            '--dir', data_dir,
-                            '--bin-dir', blobs_dir,
-                            '--home-dir', home ]
-                debug.info(subprocess.check_output(config.script, args))
-            }
-
-            var save_blob = function(status) {
-                var target, sha, that
-                var blob_dir, blob_fname, link_fname
-                var git_path = status.src
-                if (status.index == ' ' && status.tree == 'D')
-                    return git.rm(status.src)
-
-                sha = git.hash_object(git_path)
-                that = { root : os.path(git.path(), '.git', 'blobs'),
-                         prefix : sha.slice(0, 2),
-                         id : sha.slice(2) }
-                debug.debug("ID ", that.id)
-                mkdir(that.root)
-                blob_dir = os.path(that.root, that.prefix)
-                mkdir(blob_dir)
-                blob_fname = os.path(blob_dir, that.id)
-                link_fname = os.path(git.path(), git_path)
-                if (os.path.isfile(blob_fname)) {
-                    debug.debug("unlink")
-                    os.unlink(link_fname)
-                } else {
-                    debug.debug("rename")
-                    os.rename(link_fname, blob_fname)
-                }
-                target = os.path.relative(blob_fname, os.path.dirname(link_fname))
-                os.symlink(target, link_fname)
-                return that;
-            }
-
-            var restore = function() {
-                exec_script('import')
-            }
-
-            var backup = function() {
-                var status, i
-
-                var is_tree_dirty = function(status) {
-                    return util.first(status, function(item) {
-                        return !item.is_tree_clean()
-                    }) < status.length
-                }
-
-                var isnt_commited = function(status) {
-                    return util.first(status, function(item) {
-                        return !item.is_clean()
-                    }) < status.length
-                }
-
-                // cleanup directories for data and blobs in
-                // the repository
-                os.rmtree(data_dir)
-                os.rmtree(blobs_dir)
-                mkdir(root_dir)
-                mkdir(data_dir)
-                mkdir(blobs_dir)
-
-                exec_script('export')
-
-                util.foreach(git.status(blobs_rel), save_blob)
-
-                // commit data
-                status = git.status(root_dir)
-                if (!status.length) {
-                    debug.info("Nothing to backup for " + name)
-                    return
-                }
-
-                git.add(root_dir, ['-A']);
-                status = git.status(root_dir)
-                if (is_tree_dirty(status))
-                    throw lib.error({msg : "Dirty tree",
-                                     dir : root_dir,
-                                     status : status_dump(status) })
-
-                git.commit(">" + name);
-
-                status = git.status(root_dir)
-                if (isnt_commited(status))
-                    throw lib.error({msg : "Not fully commited",
-                                     dir : root_dir,
-                                     status : status_dump(status)})
-
-            }
-            return { backup : backup,
-                     restore : restore,
-                     reset : reset }
-        }
-
-        var backup = function(home, options, on_progress) {
-            var config = init_config()
-            var head, name
-            var res = { succeeded :[], failed : [] }
-            var modules
-
-            var backup_module = function(name) {
-                var head_before = git.rev_parse('HEAD')
-                //config[name].name = name
-                var module = mk_module(config.modules()[name], home)
-
-                try {
-                    on_progress({ module: name, status: "begin" })
-                    module.backup()
-                    on_progress({ module: name, status: "ok" })
-                    res.succeeded.push(name)
-                } catch (err) {
-                    err.module = name
-                    debug.error("Failed to backup " + name + ", reason: "
-                            + err.toString())
-                    on_progress({ module: name, status: "fail" })
-                    res.failed.push(name)
-                    module.reset(head_before)
-                }
-            }
-
-            start_time_tag = sys.date().toGitTag()
-
-            git.checkout('master')
-
-            if (options && options.modules) {
-                util.foreach(options.modules, backup_module)
-            } else {
-                for (name in config.modules()) {
-                    backup_module(name)
-                }
-            }
-
-            message = ((options && options.message)
-                       ? [start_time_tag, options.message].join('\n')
-                       : start_time_tag)
-            os.write_file(message_file, message)
-            git.add(".message")
-            git.commit([start_time_tag, message].join('\n'))
-
-            git.tag(['>' + start_time_tag])
-            tag_as_latest()
-            git.notes(['add', '-m', options.message || start_time_tag])
-            return res
+        var save = function() {
+            os.write_file(config_path, JSON.stringify(config, null, '\t'));
         };
 
-        var set_current = function(tag) {
-            git.checkout('>' + tag)
-        }
+        res = {};
 
-        var restore = function(home, options, on_progress) {
-            var config = init_config()
-            var res = { succeeded :[], failed : [] }
-            var name
+        res.modules = function() { return config; };
 
-            var restore_module = function(name) {
-                //config[name].name = name
-                var module = mk_module(config.modules()[name], home)
-                try {
-                    on_progress({ module: name, status: "begin" })
-                    module.restore()
-                    on_progress({ module: name, status: "ok" })
-                    res.succeeded.push(name)
-                } catch (err) {
-                    err.module = name
-                    debug.error("Failed to restore " + name
-                                + ", reason: " + err.toString())
-                    on_progress({ module: name, status: "fail" })
-                    res.failed.push(name)
+        /// create wrapper to change configuration
+        res.mutable = function() {
+            var that = Object.create(res);
+            that.method('add', function(desc) {
+                var name = desc.name;
+                if (!(name && desc.script))
+                    error.raise({
+                        msg : "Module description should contain"
+                            + " name and script"});
+                config[name] = desc;
+                save();
+                vcs.add(config_fname);
+                vcs.commit("+" + name);
+            });
+            that.method('rm', function(name) {
+                if (name && (name in config)) {
+                    delete config[name];
+                    save();
+                    vcs.rm(config_fname);
+                    vcs.commit("-" + name);
+                } else {
+                    error.raise({
+                        msg : "Can't delete non-existing module",
+                        name : name });
                 }
-            }
+            });
+            return that;
+        };
 
-            if (options && options.modules) {
-                util.foreach(options.modules, restore_module)
+        return res;
+    };
+
+    /// lazy vault configuration loading/initialization
+    var init_config = function() {
+        return mk_config();
+        // if (modules_config == null)
+        //     modules_config = mk_config()
+        // return modules_config
+    };
+
+    var blob = function(git_path) {
+        var sha = vcs.hash_object(git_path)
+        , prefix = sha.slice(0, 2)
+        , id = sha.slice(2)
+        , blob_dir = os.path(blob_storage, prefix)
+        , blob_fname = os.path(blob_dir, id)
+        , link_fname = os.path(vcs.root(), git_path);
+
+        var add = function() {
+            if (os.path.isfile(blob_fname)) {
+                os.unlink(link_fname);
             } else {
-                for (name in config.modules()) {
-                    debug.debug("Restoring", name)
-                    restore_module(name)
-                }
+                os.rename(link_fname, blob_fname);
             }
-        }
-
-        var snapshot = {
-            toString : function() {
-                return [this.name, this.note].join(':')
-            }
-        }
-
-        var list_snapshots = function() {
-            git.tag([])
-            var tags = util.filter(git.stdout().toString().split('\n'),
-                                   function(tag) {
-                                       return (tag[0] === '>')
-                                   })
-            return util.map(tags, function(tag) {
-                var res = Object.create(snapshot)
-                res.name = tag.substr(1)
-                var note = git.notes(['show', tag], true) || ""
-                res.note = note.toString().trim()
-                return res
-            })
-        }
+            os.symlink(os.path.relative
+                       (blob_fname, os.path.dirname(link_fname))
+                       , link_fname);
+        };
 
         return Object.create({
-            /// init vault git repository
-            init : init,
-            /// perform backup
-            backup : backup,
-            restore : restore,
-            list_snapshots : list_snapshots,
-            /// returns repository configuration
-            config : mk_config,
-            /// set repository head pointer to some snapshot
-            set_current : set_current,
-            checkout : function(treeish) { git.checkout(treeish) }
-        })
-    }
+            add : add
+        });
+    };
 
-    var parse_kv_pairs = function(cfg) {
-        var res = {}
-        var pairs, i, kv
-        if (cfg) {
-            util.foreach(cfg.split(','), function(v) {
-                kv = v.split('=')
-                if (kv.length == 2 && kv[0].length)
-                    res[kv[0]] = kv[1]
-            })
+    /// functionality related to specific module
+    var mk_module = function(config, home) {
+        var name = config.name;
+        var root_dir = vcs.path(name);
+        var data_dir = root_dir.path("data");
+        var blobs_dir = root_dir.path("blobs");
+        var mkdir = os.mkdir;
+
+        var reset = function(treeish) {
+            vcs.clean(['-fd', '--', name]);
+            vcs.reset(['--hard', treeish]);
+        };
+
+        /// execute backup script registered for the module
+        var exec_script = function(action) {
+            debug.debug('script', config.script, 'action', action);
+            var args = ['--action', action,
+                        '--dir', data_dir,
+                        '--bin-dir', blobs_dir,
+                        '--home-dir', home ];
+            debug.info(subprocess.check_output(config.script, args));
+        };
+
+        var restore = function() {
+            exec_script('import');
+        };
+
+        var backup = function() {
+            var status, i;
+
+            var is_tree_dirty = function(status) {
+                return util.first(status, function(item) {
+                    return !item.isTreeClean();
+                }) < status.length;
+            };
+
+            var isnt_commited = function(status) {
+                return util.first(status, function(item) {
+                    return !item.isClean();
+                }) < status.length;
+            };
+
+            // cleanup directories for data and blobs in
+            // the repository
+            os.rmtree(data_dir.absolute);
+            os.rmtree(blobs_dir.absolute);
+            mkdir(root_dir.absolute);
+            mkdir(data_dir.absolute);
+            mkdir(blobs_dir.absolute);
+
+            exec_script('export');
+
+            // save blobs
+            util.foreach(vcs.status(blobs_dir.relative), function(status) {
+                var git_path = status.src;
+                if (status.index == ' ' && status.tree == 'D')
+                    return vcs.rm(git_path);
+
+                return blob(git_path).add();
+            });
+
+            // commit data
+            status = vcs.status(root_dir);
+            if (!status.length) {
+                debug.info("Nothing to backup for " + name);
+                return;
+            }
+
+            vcs.add(root_dir, ['-A']);
+            status = vcs.status(root_dir);
+            if (is_tree_dirty(status))
+                error.raise({msg : "Dirty tree",
+                             dir : root_dir,
+                             status : status_dump(status) });
+
+            vcs.commit(">" + name);
+
+            status = vcs.status(root_dir);
+            if (isnt_commited(status))
+                error.raise({msg : "Not fully commited",
+                             dir : root_dir,
+                             status : status_dump(status)});
+
+        };
+        return Object.create
+        ({ backup : backup,
+           restore : restore,
+           reset : reset });
+    };
+
+    var backup = function(home, options, on_progress) {
+        var res = { succeeded :[], failed : [] };
+        var config = init_config();
+        var start_time_tag = sys.date().toGitTag();
+        var name, message;
+
+        var backup_module = function(name) {
+            var head_before = vcs.rev_parse('HEAD');
+            //config[name].name = name
+            var module = mk_module(config.modules()[name], home);
+
+            try {
+                on_progress({ module: name, status: "begin" });
+                module.backup();
+                on_progress({ module: name, status: "ok" });
+                res.succeeded.push(name);
+            } catch (err) {
+                err.module = name;
+                debug.error("Failed to backup " + name + ", reason: "
+                            + err.toString());
+                on_progress({ module: name, status: "fail" });
+                res.failed.push(name);
+                module.reset(head_before);
+            }
+        };
+
+        vcs.checkout('master');
+
+        if (options && options.modules) {
+            util.foreach(options.modules, backup_module);
+        } else {
+            for (name in config.modules()) {
+                backup_module(name);
+            }
         }
-        return res
-    }
 
-    var results = (function() {
-        var that = function(obj) {
-            if (obj.status === 'ok')
-                that.succeeded.push(obj.module)
-            else if (obj.status === 'fail')
-                that.failed.push(obj.module)
+        message = ((options && options.message)
+                   ? [start_time_tag, options.message].join('\n')
+                   : start_time_tag);
+        os.write_file(message_file, message);
+        vcs.add(".message");
+        vcs.commit([start_time_tag, message].join('\n'));
 
+        vcs.snapshots.tag(start_time_tag);
+        tag_as_latest();
+        vcs.notes.add(options.message || start_time_tag);
+        return res;
+    };
+
+    var restore = function(home, options, on_progress) {
+        var config = init_config();
+        var res = { succeeded :[], failed : [] };
+        var name;
+
+        var restore_module = function(name) {
+            //config[name].name = name
+            var module = mk_module(config.modules()[name], home);
+            try {
+                on_progress({ module: name, status: "begin" });
+                module.restore();
+                on_progress({ module: name, status: "ok" });
+                res.succeeded.push(name);
+            } catch (err) {
+                err.module = name;
+                debug.error("Failed to restore " + name
+                            + ", reason: " + err.toString());
+                on_progress({ module: name, status: "fail" });
+                res.failed.push(name);
+            }
+        };
+
+        if (options && options.modules) {
+            util.foreach(options.modules, restore_module);
+        } else {
+            for (name in config.modules()) {
+                restore_module(name);
+            }
         }
-        that.succeeded = []
-        that.failed = []
-        return that
-    }).call(this)
+    };
 
-    mk_vault.execute = function(options) {
-        var vault = mk_vault(options.vault)
-        var action = options.action
-        var res
+    return Object.create({
+        /// init vault git repository
+        init : init,
+        /// perform backup
+        backup : backup,
+        restore : restore,
+        snapshots : snapshots,
+        /// returns repository configuration
+        config : mk_config,
+        checkout : function(treeish) { vcs.checkout(treeish) }
+    });
+};
 
-        switch (action) {
-        case 'init':
-            res = vault.init(parse_kv_pairs(options.git_config))
-            break;
-        case 'backup':
-            res = vault.backup(options.home,
-                               {modules : [options.module],
-                                message : options.message},
-                               results)
-            break
-        case 'restore':
-            if (!options.tag)
-                throw lib.error({msg : "tag should be provided to restore"})
-            vault.set_current(options.tag)
-            res = vault.restore(options.home,
-                                {modules : [options.module]},
-                                results)
-            break
-        case 'list-snapshots':
-            res = vault.list_snapshots()
-            print(util.map(res, function(s) { return s.name }).join('\n'))
-            break
-        case 'register':
-            vault.checkout('master')
-            if (!options.data)
-                throw lib.error({ action : action, msg : "Needs data" })
-            res = vault.config().mutable().add(parse_kv_pairs(options.data))
-            break;
-        case 'unregister':
-            vault.checkout('master')
-            if (!options.module)
-                throw lib.error({ action : action, msg : "Needs module name" })
-            res = vault.config().mutable().rm(options.module)
-            break;
-        default:
-            throw lib.error({ msg : "Unknown action", action : action})
-            break
-        }
-        return res
+var parse_kv_pairs = function(cfg) {
+    var res = {};
+    var pairs, i, kv;
+    if (cfg) {
+        util.foreach(cfg.split(','), function(v) {
+            kv = v.split('=');
+            if (kv.length == 2 && kv[0].length)
+                res[kv[0]] = kv[1];
+        });
     }
+    return res;
+};
 
-    lib.vault = mk_vault
-}).call(this)
+var results = (function() {
+    var that = function(obj) {
+        var dst = (obj.status === 'ok'
+                   ? that.succeeded
+                   : that.failed);
+        dst.push(obj.module);
+    };
+
+    that.succeeded = [];
+    that.failed = [];
+    return that;
+}).call();
+
+mk_vault.execute = function(options) {
+    var vault = mk_vault(options.vault);
+    var action = options.action;
+    var res;
+
+    switch (action) {
+    case 'init':
+        res = vault.init(parse_kv_pairs(options.git_config));
+        break;
+    case 'backup':
+        res = vault.backup(options.home,
+                           {modules : [options.module],
+                            message : options.message},
+                           results);
+        break;
+    case 'restore':
+        if (!options.tag)
+            error.raise({msg : "tag should be provided to restore"});
+        vault.snapshots.activate(options.tag);
+        res = vault.restore(options.home,
+                            {modules : [options.module]},
+                            results);
+        break;
+    case 'list-snapshots':
+        res = vault.snapshots.list();
+        print(res.join('\n'));
+        break;
+    case 'register':
+        vault.checkout('master');
+        if (!options.data)
+            error.raise({ action : action, msg : "Needs data" });
+        res = vault.config().mutable().add(parse_kv_pairs(options.data));
+        break;
+    case 'unregister':
+        vault.checkout('master');
+        if (!options.module)
+            error.raise({ action : action, msg : "Needs module name" });
+        res = vault.config().mutable().rm(options.module);
+        break;
+    default:
+        error.raise({ msg : "Unknown action", action : action});
+        break;
+    }
+    return res;
+};
+
+return mk_vault;
