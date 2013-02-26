@@ -8,7 +8,7 @@ URL: https://github.com/nemomobile/the-vault
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Requires: qtscript-cli
+Requires: cutes
 Requires: qtscriptbindings-core
 
 %description
@@ -24,9 +24,16 @@ Requires: the-vault
 %description examples
 Examples of backup scripts
 
+%package -n narwhal
+Summary: Narwhal javascript library
+Group: System Environment/Libraries
+%description -n narwhal
+Part of Narwhal javascript library adopted to be used with cutes
+
 %package -n cutes-core
 Summary: QtScript library
 Group: System Environment/Libraries
+Requires: json-js, narwhal
 %description -n cutes-core
 QtScript library providing different functionality
 
@@ -50,6 +57,8 @@ install -d -D -p -m755 %{buildroot}%{jslibdir}/
 install -D -p -m644 lib/*.js %{buildroot}%{jslibdir}/
 install -d -D -p -m755 %{buildroot}%{jslibdir}/json/
 install -D -p -m644 json/*.js %{buildroot}%{jslibdir}/json/
+install -d -D -p -m755 %{buildroot}%{jslibdir}/narwhal/
+install -D -p -m644 lib/narwhal/*.js %{buildroot}%{jslibdir}/narwhal/
 
 install -d -D -p -m755 %{buildroot}%{_datadir}/the-vault/
 install -D -p -m644 src/*.js %{buildroot}%{_datadir}/the-vault/
@@ -75,4 +84,9 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{jslibdir}/json/*.js
 %doc json/README
+
+%files -n narwhal
+%defattr(-,root,root,-)
+%{jslibdir}/narwhal/*.js
+%doc README-narwhal.md
 
