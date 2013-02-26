@@ -1,6 +1,6 @@
 Summary: Backup/restore middleware and cli
 Name: the-vault
-Version: 0.1
+Version: 0.2
 Release: 1
 License: LGPL21
 Group: System Environment/Tools
