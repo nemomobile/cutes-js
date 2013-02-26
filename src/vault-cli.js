@@ -39,4 +39,4 @@ var cmdline = sys.getopt({
     data : { short_ : "d", long_ : "data", has_param : true }
 }).parse(qtscript.script.args);
 
-return vault.execute(cmdline.opts);
+vault.execute(cmdline.opts);

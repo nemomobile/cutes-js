@@ -23,7 +23,7 @@
  */
 
 require("qtcore.js");
-require("json2.js");
+require("json/json2.js");
 
 var sys = require("sys.js");
 var os = require("os.js");
@@ -61,6 +61,7 @@ var mk_vault = function(path) {
     var blob_storage = os.path(storage, 'blobs');
     var message_file = os.path(path, ".message");
     var snapshots = mk_snapshots(vcs);
+    var anchor_file = os.path(path, '.vault');
 
     var init = function(config) {
         config["status.showUntrackedFiles"] = "all";
@@ -84,8 +85,7 @@ var mk_vault = function(path) {
                     path : path,
                     stderr : vcs.stderr()});
 
-            vcs.set_config(config);
-            var anchor_file = os.path(path, '.vault');
+            vcs.config.set(config);
             os.write_file(anchor_file, sys.date().toGitTag());
             vcs.add(anchor_file);
             vcs.commit('anchor');
@@ -95,6 +95,18 @@ var mk_vault = function(path) {
             os.rmtree(path);
             throw err;
         }
+    };
+
+    var exists = function() {
+        return os.path.isdir(path);
+    };
+
+    var is_invalid = function() {
+        if (!os.path.exists(storage))
+            return { msg : "Can't find .git"};
+        if (!os.path.isfile(anchor_file))
+            return { msg : "Can't find .vault anchor"};
+        return false;
     };
 
     var status_dump = function(status) {
@@ -120,7 +132,6 @@ var mk_vault = function(path) {
         config = (os.path.isfile(config_path)
                   ? JSON.parse(os.read_file(config_path))
                   : {});
-
         var save = function() {
             os.write_file(config_path, JSON.stringify(config, null, '\t'));
         };
@@ -131,28 +142,30 @@ var mk_vault = function(path) {
 
         /// create wrapper to change configuration
         res.mutable = function() {
-            var that = Object.create(res);
-            that.method('add', function(desc) {
-                var name = desc.name;
-                if (!(name && desc.script))
-                    error.raise({
-                        msg : "Module description should contain"
-                            + " name and script"});
-                config[name] = desc;
-                save();
-                vcs.add(config_fname);
-                vcs.commit("+" + name);
-            });
-            that.method('rm', function(name) {
-                if (name && (name in config)) {
-                    delete config[name];
+            var that;
+            that = Object.create({
+                add : function(desc) {
+                    var name = desc.name;
+                    if (!(name && desc.script))
+                        error.raise({
+                            msg : "Module description should contain"
+                                + " name and script"});
+                    config[name] = desc;
                     save();
-                    vcs.rm(config_fname);
-                    vcs.commit("-" + name);
-                } else {
-                    error.raise({
-                        msg : "Can't delete non-existing module",
-                        name : name });
+                    vcs.add(config_fname);
+                    vcs.commit("+" + name);
+                },
+                rm : function(name) {
+                    if (name && (name in config)) {
+                        delete config[name];
+                        save();
+                        vcs.rm(config_fname);
+                        vcs.commit("-" + name);
+                    } else {
+                        error.raise({
+                            msg : "Can't delete non-existing module",
+                            name : name });
+                    }
                 }
             });
             return that;
@@ -246,7 +259,7 @@ var mk_vault = function(path) {
             exec_script('export');
 
             // save blobs
-            util.foreach(vcs.status(blobs_dir.relative), function(status) {
+            util.forEach(vcs.status(blobs_dir.relative), function(status) {
                 var git_path = status.src;
                 if (status.index == ' ' && status.tree == 'D')
                     return vcs.rm(git_path);
@@ -291,7 +304,6 @@ var mk_vault = function(path) {
 
         var backup_module = function(name) {
             var head_before = vcs.rev_parse('HEAD');
-            //config[name].name = name
             var module = mk_module(config.modules()[name], home);
 
             try {
@@ -312,11 +324,11 @@ var mk_vault = function(path) {
         vcs.checkout('master');
 
         if (options && options.modules) {
-            util.foreach(options.modules, backup_module);
+            options.modules.each(backup_module);
         } else {
-            for (name in config.modules()) {
-                backup_module(name);
-            }
+            config.modules().each(function(name, value) {
+                return backup_module(name);
+            });
         }
 
         message = ((options && options.message)
@@ -326,7 +338,7 @@ var mk_vault = function(path) {
         vcs.add(".message");
         vcs.commit([start_time_tag, message].join('\n'));
 
-        vcs.snapshots.tag(start_time_tag);
+        snapshots.tag(start_time_tag);
         tag_as_latest();
         vcs.notes.add(options.message || start_time_tag);
         return res;
@@ -338,7 +350,6 @@ var mk_vault = function(path) {
         var name;
 
         var restore_module = function(name) {
-            //config[name].name = name
             var module = mk_module(config.modules()[name], home);
             try {
                 on_progress({ module: name, status: "begin" });
@@ -355,17 +366,19 @@ var mk_vault = function(path) {
         };
 
         if (options && options.modules) {
-            util.foreach(options.modules, restore_module);
+            options.modules.each(restore_module);
         } else {
-            for (name in config.modules()) {
+            config.modules().each(function(name, value) {
                 restore_module(name);
-            }
+            });
         }
     };
 
     return Object.create({
         /// init vault git repository
         init : init,
+        exists : exists,
+        is_invalid : is_invalid,
         /// perform backup
         backup : backup,
         restore : restore,
@@ -380,7 +393,7 @@ var parse_kv_pairs = function(cfg) {
     var res = {};
     var pairs, i, kv;
     if (cfg) {
-        util.foreach(cfg.split(','), function(v) {
+        util.forEach(cfg.split(','), function(v) {
             kv = v.split('=');
             if (kv.length == 2 && kv[0].length)
                 res[kv[0]] = kv[1];
@@ -405,7 +418,7 @@ var results = (function() {
 mk_vault.execute = function(options) {
     var vault = mk_vault(options.vault);
     var action = options.action;
-    var res;
+    var res, modules = options.module ? [options.module] : undefined;
 
     switch (action) {
     case 'init':
@@ -413,7 +426,7 @@ mk_vault.execute = function(options) {
         break;
     case 'backup':
         res = vault.backup(options.home,
-                           {modules : [options.module],
+                           {modules : modules,
                             message : options.message},
                            results);
         break;
@@ -422,7 +435,7 @@ mk_vault.execute = function(options) {
             error.raise({msg : "tag should be provided to restore"});
         vault.snapshots.activate(options.tag);
         res = vault.restore(options.home,
-                            {modules : [options.module]},
+                            {modules : modules},
                             results);
         break;
     case 'list-snapshots':
@@ -448,4 +461,4 @@ mk_vault.execute = function(options) {
     return res;
 };
 
-return mk_vault;
+exports = mk_vault;
