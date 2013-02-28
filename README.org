@@ -2,3 +2,14 @@
 
 Javascript libraries created specially for QtScript javascript cutes
 environment and also adapted or reused (json, narwhal etc.)
+
+** Module system
+
+cutes uses module system similar to node.js and narwhal to allow
+easier porting of the code from this libraries. Some qualities of the
+QtScript result in I have not got _exports_ to be used not only in
+assignments but also to get and use its members inside module
+functions because it is global variable and QtScript resolves it when
+the function is called and creating it in a local environment does not
+provide control on its behaviour. There is an option to create local
+environment and to capture it in closure but this is in TODO list.
