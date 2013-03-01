@@ -39,11 +39,7 @@ Canonical javascript json parser from Douglas Crockford
 %install
 rm -rf %{buildroot}
 install -d -D -p -m755 %{buildroot}%{jslibdir}/
-install -D -p -m644 lib/*.js %{buildroot}%{jslibdir}/
-install -d -D -p -m755 %{buildroot}%{jslibdir}/json/
-install -D -p -m644 json/*.js %{buildroot}%{jslibdir}/json/
-install -d -D -p -m755 %{buildroot}%{jslibdir}/narwhal/
-install -D -p -m644 lib/narwhal/*.js %{buildroot}%{jslibdir}/narwhal/
+make install DESTDIR=%{buildroot}
 
 %clean
 rm -rf %{buildroot}
