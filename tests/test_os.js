@@ -2,6 +2,11 @@ var test = require('test');
 var os = require("os.js");
 
 test.execute({
+    home : function() {
+        var home = os.home();
+        test.notEqual(home.length, 0);
+        test.equal(home, qtscript.env['HOME']);
+    },
     path : function() {
         test.equal(os.path('/usr', 'bin'), '/usr/bin');
     },
