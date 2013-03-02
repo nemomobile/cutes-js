@@ -36,6 +36,8 @@ Canonical javascript json parser from Douglas Crockford
 %setup -q
 
 %build
+%cmake
+make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
