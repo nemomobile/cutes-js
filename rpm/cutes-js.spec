@@ -1,6 +1,6 @@
 Summary: Javascript libraries for cutes
 Name: cutes-js
-Version: 0.3
+Version: 0.4
 Release: 1
 License: LGPL21
 Group: System Environment/Tools
