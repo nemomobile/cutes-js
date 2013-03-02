@@ -10,6 +10,7 @@ BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Requires: cutes
 Requires: qtscriptbindings-core
+BuildRequires: cmake
 
 %description
 Miscelaneous javascript libraries created or adopted to be used with cutes
