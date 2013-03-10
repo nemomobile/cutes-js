@@ -9,6 +9,7 @@ test.execute({
     },
     path : function() {
         test.equal(os.path('/usr', 'bin'), '/usr/bin');
+        test.equal(os.path.relative('/usr/bin', '/usr'), 'bin');
     },
     path_checks : function() {
         test.equal(os.path.exists('non_existing_file'), false);
