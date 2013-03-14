@@ -2,17 +2,26 @@ var test = require('test');
 var os = require("os.js");
 
 test.execute({
-    home : function() {
+    basic : function() {
         var home = os.home();
         test.notEqual(home.length, 0);
         test.equal(home, qtscript.env['HOME']);
+        test.equal(os.root(), '/'); // unix only
     },
     path : function() {
         test.equal(os.path(), '');
         test.equal(os.path('/'), '/');
         test.equal(os.path('/', 'usr'), '/usr');
         test.equal(os.path('/usr', 'bin'), '/usr/bin');
+
         test.equal(os.path.relative('/usr/bin', '/usr'), 'bin');
+
+        test.deepEqual(os.path.split('/'), ['/']);
+        test.deepEqual(os.path.split('//'), ['/']);
+        test.deepEqual(os.path.split('/usr//bin'), ['/', 'usr', 'bin']);
+        test.deepEqual(os.path.split('/usr//bin/'), ['/', 'usr', 'bin']);
+        test.deepEqual(os.path.split('/usr///bin/'), ['/', 'usr', 'bin']);
+        test.deepEqual(os.path.split('usr///bin'), ['usr', 'bin']);
     },
     path_checks : function() {
         test.equal(os.path.exists('non_existing_file'), false);
@@ -23,6 +32,8 @@ test.execute({
 
         test.equal(os.path.isfile('./test_os.js'), true);
         test.equal(os.path.isfile('non_existing_file'), false);
+
+        test.ok(os.path.isSame('/tmp', '/tmp/../tmp', "absolute and relative"));
     },
     file_io : function() {
         var data = 'a\nb'
