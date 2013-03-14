@@ -8,6 +8,9 @@ test.execute({
         test.equal(home, qtscript.env['HOME']);
     },
     path : function() {
+        test.equal(os.path(), '');
+        test.equal(os.path('/'), '/');
+        test.equal(os.path('/', 'usr'), '/usr');
         test.equal(os.path('/usr', 'bin'), '/usr/bin');
         test.equal(os.path.relative('/usr/bin', '/usr'), 'bin');
     },
