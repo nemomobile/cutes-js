@@ -1,6 +1,6 @@
 Summary: Javascript libraries for cutes
 Name: cutes-js
-Version: 0.5.5
+Version: 0.7.4
 Release: 1
 License: LGPL21
 Group: System Environment/Tools
@@ -8,7 +8,7 @@ URL: https://github.com/deztructor/cutes-js
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Requires: cutes >= 0.6.1
+Requires: cutes >= 0.7.4
 Requires: qtscriptbindings-core
 BuildRequires: cmake
 
@@ -29,6 +29,12 @@ License: Public Domain
 Group: System Environment/Libraries
 %description -n json-js
 Canonical javascript json parser from Douglas Crockford
+
+%package coffee-script
+Summary: CoffeeScript compiler for cutes
+Group: Applications/Libraries
+%description coffee-script
+CoffeeScript compiler for cutes
 
 %define jslibdir %{_datadir}/cutes
 
@@ -61,3 +67,9 @@ rm -rf %{buildroot}
 %{jslibdir}/narwhal/*.js
 %doc README-narwhal.md
 
+%files coffee-script
+%defattr(-,root,root,-)
+%{jslibdir}/coffee/*.js
+%{_bindir}/coffee-script-compile
+%doc coffee/README
+%doc coffee/COPYING
