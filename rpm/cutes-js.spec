@@ -1,6 +1,6 @@
 Summary: Javascript libraries for cutes
 Name: cutes-js
-Version: 0.7.4
+Version: 0.7.6
 Release: 1
 License: LGPL21
 Group: System Environment/Tools
@@ -8,7 +8,7 @@ URL: https://github.com/deztructor/cutes-js
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Requires: cutes >= 0.7.4
+Requires: cutes >= 0.7.6
 Requires: qtscriptbindings-core
 Requires: cutes-narwhal = %{version}, cutes-json-js = %{version}
 BuildRequires: cmake
