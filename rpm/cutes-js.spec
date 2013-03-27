@@ -8,10 +8,11 @@ URL: https://github.com/deztructor/cutes-js
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Requires: cutes >= 0.7.6
+Requires: cutes >= 0.7.7
 Requires: qtscriptbindings-core
 Requires: cutes-narwhal = %{version}, cutes-json-js = %{version}
-BuildRequires: cmake
+Requires: coreutils >= 6.9
+BuildRequires: cmake >= 2.8
 
 %description
 Miscelaneous javascript libraries created or adopted to be used with cutes
