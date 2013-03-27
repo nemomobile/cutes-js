@@ -50,21 +50,20 @@ test.execute({
 
         os.system('touch', ['/tmp/cutes_lib_test_file1']);
         os.system('ln' , ['-s', '/tmp/cutes_lib_test_file1'
-                          , '/tmp/cutes_lib_test_link1']);
+                         , '/tmp/cutes_lib_test_link1']);
         test.ok(os.path.isSymLink('/tmp/cutes_lib_test_link1'), "Should be link");
 
     }
-    , fileTime : function() {
-        var fname = '/tmp/cutes_lib_test_time';
-        os.fileWrite(fname, '1');
-        var t1 = os.path.lastModified(fname);
-        time.sleep(1100); // formatted time precision is seconds
-        os.fileWrite(fname, '1');
-        var t2 = os.path.lastModified(fname);
-        test.notEqual(t1.toString(), t2.toString(), "Test precondition");
-        os.path.setLastModified(fname, t1);
-        var t3 = os.path.lastModified(fname);;
-        test.equal(t3.toString(), t1.toString(), "Time is not set correctly?");
-    }
-    }
+  , fileTime : function() {
+      var fname = '/tmp/cutes_lib_test_time';
+      os.fileWrite(fname, '1');
+      var t1 = os.path.lastModified(fname);
+      time.sleep(1100); // formatted time precision is seconds
+      os.fileWrite(fname, '1');
+      var t2 = os.path.lastModified(fname);
+      test.notEqual(t1.toString(), t2.toString(), "Test precondition");
+      os.path.setLastModified(fname, t1);
+      var t3 = os.path.lastModified(fname);;
+      test.equal(t3.toString(), t1.toString(), "Time is not set correctly?");
+  }
 });
