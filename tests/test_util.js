@@ -86,4 +86,11 @@ fixture.addTest('stream', function() {
     test.deepEqual(s.map(function(s) { return s.next() + 1; }), [2]);
 });
 
+fixture.addTest('numbers', function() {
+    test.ok("1234".isDecimal(), "Decimal");
+    test.ok("-1234".isDecimal(), "Negative decimal");
+    test.ok("+1234".isDecimal(), "Positive decimal");
+    test.ok(!("1234f".isDecimal()), "Not decimal");
+});
+
 fixture.execute();
