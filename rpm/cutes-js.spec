@@ -34,6 +34,7 @@ Canonical javascript json parser from Douglas Crockford
 
 %package -n cutes-coffee-script
 Summary: CoffeeScript compiler for cutes
+License: MPL-2.0
 Group: Applications/Libraries
 %description -n cutes-coffee-script
 CoffeeScript compiler for cutes
