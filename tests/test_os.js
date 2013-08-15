@@ -12,7 +12,7 @@ var fixture = test.fixture();
 fixture.addTest('basic', function() {
     var home = os.home();
     test.notEqual(home.length, 0);
-    test.equal(home, qtscript.env['HOME']);
+    test.equal(home, cutes.env['HOME']);
     test.equal(os.root(), '/'); // unix only
 });
 
@@ -51,7 +51,7 @@ fixture.addTest('file_io', function() {
     os.write_file(fname, data);
     test.equal(os.path.exists(fname), true);
     test.equal(os.path.isfile(fname), true);
-    var read = os.read_file(fname);
+    var read = os.read_file(fname).toString();
     test.equal(read, data);
 });
 

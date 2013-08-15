@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export QTSCRIPT_LIBRARY_PATH=../lib
+export CUTES_LIBRARY_PATH=../lib:../
 EXEC=cutes
 
 for i in error util os git sys; do

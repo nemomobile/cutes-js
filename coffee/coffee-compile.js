@@ -26,22 +26,18 @@
  */
 (function() {
 
-    var args = qtscript.script.args
+    var args = cutes.module.args
     if (args.length != 2) {
         print("Usage:", args[0], "<compiled_script.coffee>")
         return 1
     }
 
-    qtscript.extend('qt.core')
-    QByteArray.prototype.toString = function() {
-        var s = new QTextStream(this, QIODevice.ReadOnly)
-        return s.readAll()
-    }
-    qtscript.include('coffee-script.js')
-    var cs = qtscript.CoffeeScript
+    var Q = cutes.extend('qt.core')
+    cutes.include('coffee-script.js')
+    var cs = this.CoffeeScript
     var read_file = function(file_name) {
-        var f = new QFile(file_name)
-        f.open(QIODevice.ReadOnly)
+        var f = new Q.File(file_name)
+        f.open(Q.IODevice.ReadOnly)
         try {
             return f.readAll().toString()
         } finally {

@@ -21,7 +21,7 @@ fixture.addTest('init', function() {
 });
 
 fixture.addTest('config', function() {
-    var uname = 'User Name', umail = 'email@user.com';
+    var uname = 'Test User', umail = 'email@user.com';
     vcs.config.set({'user.name' : uname, 'user.email' : umail});
     test.equal(vcs.config.get('user.name'), uname);
     test.equal(vcs.config.get('user.email'), umail);
