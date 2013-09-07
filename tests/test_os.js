@@ -55,6 +55,24 @@ fixture.addTest('file_io', function() {
     test.equal(read, data);
 });
 
+fixture.addTest('entryInfoList', function() {
+    var dirForList = os.path(rootDir, "entryInfoList")
+    test.ok(os.mkdir(dirForList), "dirForList for tests is created");
+    var f1 = os.path(dirForList, "f1"), f2 = os.path(dirForList, "f2");
+    var d = os.qt.dir(dirForList);
+    var Q = require('qtcore');
+    os.write_file(f1, "1");
+    var entries = d.entryInfoList(["*"], Q.Dir.Files);
+    test.equal(entries.length, 1);
+    test.equal(entries[0].fileName(), "f1");
+
+    os.write_file(f2, "2");
+    var entries2 = d.entryInfoList(["*"], Q.Dir.Files, Q.Dir.Name);
+    test.equal(entries2.length, 2);
+    test.equal(entries2[0].fileName(), "f1");
+    test.equal(entries2[1].fileName(), "f2");
+});
+
 fixture.addTest('path_checks', function() {
     test.equal(os.path.exists('non_existing_file'), false);
     test.equal(os.path.exists(os.home()), true);
