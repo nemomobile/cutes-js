@@ -92,6 +92,26 @@ fixture.addTest('path_checks', function() {
 
 });
 
+fixture.addTest('fileInfo', function() {
+    var dname = "path_info";
+    var d = os.path(rootDir, dname);
+    test.equal(os.path.fileName(d), dname);
+    test.equal(os.path.baseName(d), dname);
+    test.equal(os.path.dirName(d), rootDir);
+    test.equal(os.path.suffix(d), "");
+    test.equal(os.path.completeSuffix(d), "");
+
+    var base = "test_file";
+    var suffix = "e2";
+    var completeSuffix = "e1." + suffix;
+    var name1 = base + "." + completeSuffix;
+    var f1 = os.path(d, name1);
+    test.equal(os.path.fileName(f1), name1);
+    test.equal(os.path.baseName(f1), base);
+    test.equal(os.path.suffix(f1), suffix);
+    test.equal(os.path.completeSuffix(f1), completeSuffix);
+});
+
 fixture.addTest('fileTime', function() {
     var fname = '/tmp/cutes_lib_test_time';
     os.fileWrite(fname, '1');
