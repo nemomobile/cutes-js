@@ -16,18 +16,6 @@ fixture.addTest('basic', function() {
     test.equal(os.root(), '/'); // unix only
 });
 
-fixture.addTest('mkdir', function() {
-    test.ok(!os.path.exists(rootDir)
-            , "Test root dir " + rootDir + " should not exist");
-    test.throws(os.mkdir);
-    test.ok(os.mkdir(rootDir), "creating root for tests");
-    fixture.addTeardown(function() {
-        if (!fixture.is_failed) os.rmtree(rootDir);
-    });
-    test.ok(!os.mkdir(rootDir), "root for tests is created, expecting false");
-    test.throws(os.mkdir.curry(os.path(rootDir, 'w', 'e')));
-});
-
 fixture.addTest('path', function() {
     test.equal(os.path(), '');
     test.equal(os.path('', '/'), '/');
@@ -43,6 +31,45 @@ fixture.addTest('path', function() {
     test.deepEqual(os.path.split('/usr//bin/'), ['/', 'usr', 'bin']);
     test.deepEqual(os.path.split('/usr///bin/'), ['/', 'usr', 'bin']);
     test.deepEqual(os.path.split('usr///bin'), ['usr', 'bin']);
+});
+
+fixture.addTest('path_checks', function() {
+    test.equal(os.path.exists('non_existing_file'), false);
+    test.equal(os.path.exists(os.home()), true);
+
+    test.equal(os.path.isdir(os.home()), true);
+    test.equal(os.path.isdir('non_existing_file'), false);
+
+    test.equal(os.path.isfile('./test_os.js'), true);
+    test.equal(os.path.isfile('non_existing_file'), false);
+
+    test.ok(os.path.isSame('/tmp', '/tmp/../tmp', "absolute and relative"));
+
+    var ln_tgt = '/tmp/cutes_lib_test_file1', ln = '/tmp/cutes_lib_test_link1';
+    os.system('touch', [ln_tgt]);
+    os.system('ln' , ['-s', ln_tgt, ln]);
+    test.ok(os.path.isSymLink(ln), "Should be link");
+    test.equal(os.path.deref(ln), ln_tgt);
+
+});
+
+fixture.addTest('mkdir', function() {
+    test.ok(!os.path.exists(rootDir)
+            , "Test root dir " + rootDir + " should not exist");
+    test.throws(os.mkdir);
+    test.ok(os.mkdir(rootDir), "creating root for tests");
+    fixture.addTeardown(function() {
+        if (!fixture.is_failed) os.rmtree(rootDir);
+    });
+    test.ok(os.path.exists(rootDir), "root dir is created");
+    test.ok(os.path.isDir(rootDir), "created root dir");
+    test.ok(!os.mkdir(rootDir), "root for tests is created, expecting false");
+
+    var dtree = os.path(rootDir, 'w', 'e');
+    test.throws(os.mkdir.curry(dtree));
+    test.ok(os.mkdir(dtree, { parent: true }));
+    test.ok(os.path.exists(dtree), "dir with parent is created");
+    test.ok(os.path.isDir(dtree), "created dir");
 });
 
 fixture.addTest('file_io', function() {
@@ -73,25 +100,6 @@ fixture.addTest('entryInfoList', function() {
     test.equal(entries2[1].fileName(), "f2");
 });
 
-fixture.addTest('path_checks', function() {
-    test.equal(os.path.exists('non_existing_file'), false);
-    test.equal(os.path.exists(os.home()), true);
-
-    test.equal(os.path.isdir(os.home()), true);
-    test.equal(os.path.isdir('non_existing_file'), false);
-
-    test.equal(os.path.isfile('./test_os.js'), true);
-    test.equal(os.path.isfile('non_existing_file'), false);
-
-    test.ok(os.path.isSame('/tmp', '/tmp/../tmp', "absolute and relative"));
-
-    os.system('touch', ['/tmp/cutes_lib_test_file1']);
-    os.system('ln' , ['-s', '/tmp/cutes_lib_test_file1'
-                      , '/tmp/cutes_lib_test_link1']);
-    test.ok(os.path.isSymLink('/tmp/cutes_lib_test_link1'), "Should be link");
-
-});
-
 fixture.addTest('fileInfo', function() {
     var dname = "path_info";
     var d = os.path(rootDir, dname);
@@ -100,6 +108,11 @@ fixture.addTest('fileInfo', function() {
     test.equal(os.path.dirName(d), rootDir);
     test.equal(os.path.suffix(d), "");
     test.equal(os.path.completeSuffix(d), "");
+    os.mkdir(d);
+    var ddot = os.path(d, ".");
+    test.equal(os.path.canonical(ddot), d);
+    var ddots = os.path(d, "..", ".", dname);
+    test.equal(os.path.canonical(ddots), d);
 
     var base = "test_file";
     var suffix = "e2";
