@@ -35,6 +35,16 @@ fixture.addTest('map', function() {
                    , [2, 3, 4]);
 });
 
+fixture.addTest('extract', function() {
+    test.deepEqual(util.extract([], function(v) { return; }), []);
+    test.deepEqual(util.extract([1, 2, 3], function(v) { return; }), []);
+    test.deepEqual(util.extract([1, 2, 3], function(v) { return v + 1; })
+                   , [2, 3, 4]);
+    test.deepEqual(util.extract([1, 2, 3], function(v) {
+        return (v > 1) ? v : undefined;
+    }), [2, 3]);
+});
+
 fixture.addTest('filter', function() {
     test.deepEqual(util.filter([], function(v) { return true; }), []);
     test.deepEqual(util.filter([], function(v) { return false; }), []);
