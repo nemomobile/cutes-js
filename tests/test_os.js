@@ -50,7 +50,6 @@ fixture.addTest('path_checks', function() {
     os.system('ln' , ['-s', ln_tgt, ln]);
     test.ok(os.path.isSymLink(ln), "Should be link");
     test.equal(os.path.deref(ln), ln_tgt);
-
 });
 
 fixture.addTest('mkdir', function() {
@@ -74,11 +73,22 @@ fixture.addTest('mkdir', function() {
 
 fixture.addTest('file_io', function() {
     var data = 'a\nb'
-    , fname = '/tmp/cutes_lib_test_aa';
+    , fname = os.path(rootDir, 'cutes_lib_test_aa');
     os.write_file(fname, data);
     test.equal(os.path.exists(fname), true);
     test.equal(os.path.isfile(fname), true);
     var read = os.read_file(fname).toString();
+    test.equal(read, data);
+    var dplus = "\nc";
+    os.append_file(fname, dplus);
+    data += dplus;
+    read = os.read_file(fname).toString();
+    test.equal(read, data);
+
+    // append to non-existent file
+    var fname2 = os.path(rootDir, 'cutes_lib_test_aa2');
+    os.append_file(fname2, data);
+    read = os.read_file(fname2).toString();
     test.equal(read, data);
 });
 
@@ -111,8 +121,14 @@ fixture.addTest('fileInfo', function() {
     os.mkdir(d);
     var ddot = os.path(d, ".");
     test.equal(os.path.canonical(ddot), d);
+    test.ok(os.path.isSelf(ddot));
+    test.ok(!os.path.isSelf(d));
     var ddots = os.path(d, "..", ".", dname);
     test.equal(os.path.canonical(ddots), d);
+
+    test.ok(os.path.isDescendent(d, rootDir));
+    test.ok(!os.path.isDescendent(rootDir, d));
+    test.ok(os.path.isDescendent(os.path(d, "..", dname), rootDir));
 
     var base = "test_file";
     var suffix = "e2";
