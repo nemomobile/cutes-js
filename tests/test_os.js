@@ -92,6 +92,14 @@ fixture.addTest('file_io', function() {
     test.equal(read, data);
 });
 
+fixture.addTest('dirEntryOps', function() {
+    var fname = os.path(rootDir, 'cutes_lib_test_dirent_unlink');
+    os.write_file(fname, "...");
+    test.ok(os.path.exists(fname));
+    os.unlink(fname);
+    test.ok(!os.path.exists(fname));
+});
+
 fixture.addTest('entryInfoList', function() {
     var dirForList = os.path(rootDir, "entryInfoList")
     test.ok(os.mkdir(dirForList), "dirForList for tests is created");
