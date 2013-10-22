@@ -162,6 +162,26 @@ fixture.addTest('fileTime', function() {
     test.equal(t3.toString(), t1.toString(), "Time is not set correctly?");
 });
 
+fixture.addTest('cp', function() {
+    var rc;
+    var p1 = os.path(rootDir, 'cp1');
+    var p2 = os.path(rootDir, 'cp2');
+    os.write_file(p1, "1");
+    test.equal(os.read_file(p1).toString(), "1");
+    rc = os.cp(p1, p2);
+    test.equal(rc, 0);
+    test.ok(os.path.exists(p1));
+    test.ok(os.path.exists(p2));
+    test.equal(os.read_file(p2).toString(), "1");
+    os.write_file(p2, "2");
+    os.update(p1, p2);
+    test.equal(os.read_file(p2).toString(), "2");
+    var p3 = os.path(rootDir, 'cp3');
+    os.update(p1, p3);
+    test.ok(os.path.exists(p3));
+    test.equal(os.read_file(p3).toString(), "1");
+});
+
 fixture.addTest('tree', function() {
     var treeRootSrc = os.path(rootDir, 'treeTestSrc');
     os.mkdir(treeRootSrc);
