@@ -222,4 +222,13 @@ fixture.addTest('mountpoint', function() {
     test.ok(os.path.isDescendent(home, mp));
 });
 
+fixture.addTest('mime', function() {
+    var home = os.home();
+    test.ok(os.path.isDir(home), "Can't execute test with current home:" + home);
+    var mime = os.path.mime(home);
+    test.equal(typeof(mime), 'string', "mime should be string");
+    test.equal(mime, "inode/directory", "Home is dir and should have corresponding mime type");
+
+});
+
 fixture.execute();
