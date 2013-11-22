@@ -206,4 +206,29 @@ fixture.addTest('tree', function() {
     test.ok(os.path.isFile(os.path(treeRootDst, 'link')));
 });
 
+fixture.addTest('environ', function() {
+    var env = os.environ();
+    test.equal(typeof(env), 'object', "environ should be an object");
+    test.ok(env['HOME'] !== undefined);
+    test.equal(typeof(env['HOME']), 'string');
+    var home = os.home();
+    test.equal(env['HOME'], home);
+});
+
+fixture.addTest('mountpoint', function() {
+    var home = os.home();
+    var mp = os.mountpoint(home);
+    test.equal(typeof(mp), 'string', "mountpoint should be string");
+    test.ok(os.path.isDescendent(home, mp));
+});
+
+fixture.addTest('mime', function() {
+    var home = os.home();
+    test.ok(os.path.isDir(home), "Can't execute test with current home:" + home);
+    var mime = os.path.mime(home);
+    test.equal(typeof(mime), 'string', "mime should be string");
+    test.equal(mime, "inode/directory", "Home is dir and should have corresponding mime type");
+
+});
+
 fixture.execute();
