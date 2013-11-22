@@ -1,7 +1,13 @@
 #!/bin/bash
 
-export CUTES_LIBRARY_PATH=../lib:../
 EXEC=cutes
+
+$EXEC test_basic.js
+if [ $? -ne 0 ]; then
+    exit 1;
+fi
+
+export CUTES_LIBRARY_PATH=../lib:../
 
 for i in error util os git sys; do
     $EXEC test_$i.js
