@@ -206,4 +206,20 @@ fixture.addTest('tree', function() {
     test.ok(os.path.isFile(os.path(treeRootDst, 'link')));
 });
 
+fixture.addTest('environ', function() {
+    var env = os.environ();
+    test.equal(typeof(env), 'object', "environ should be an object");
+    test.ok(env['HOME'] !== undefined);
+    test.equal(typeof(env['HOME']), 'string');
+    var home = os.home();
+    test.equal(env['HOME'], home);
+});
+
+fixture.addTest('mountpoint', function() {
+    var home = os.home();
+    var mp = os.mountpoint(home);
+    test.equal(typeof(mp), 'string', "mountpoint should be string");
+    test.ok(os.path.isDescendent(home, mp));
+});
+
 fixture.execute();
