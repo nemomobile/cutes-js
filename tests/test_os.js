@@ -289,4 +289,15 @@ fixture.addTest('du', function() {
     }, res);
 });
 
+fixture.addTest('mktemp', function() {
+    var name = os.mktemp();
+    test.equal(typeof(name), 'string', "Temp file name is not a string: " + name);
+    test.ok(os.path.isFile(name), "Should be file:" + name);
+    os.rm(name);
+    name = os.mktemp({dir: true});
+    test.equal(typeof(name), 'string', "Temp dir name is not a string: " + name);
+    test.ok(os.path.isDir(name), "Should be dir:" + name);
+    os.rmtree(name);
+});
+
 fixture.execute();
