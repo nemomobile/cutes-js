@@ -4,6 +4,7 @@ var os = require("os.js");
 var time = require('time');
 // var debug= require('debug');
 // debug.level('debug');
+var _ = require('functional');
 
 var rootDir = '/tmp/.cutes-js-test-f1f6f3868167b337dea6a229de1f3f4a';
 
@@ -229,6 +230,74 @@ fixture.addTest('mime', function() {
     test.equal(typeof(mime), 'string', "mime should be string");
     test.equal(mime, "inode/directory", "Home is dir and should have corresponding mime type");
 
+});
+
+fixture.addTest('mount', function() {
+    var res = os.mount();
+//    print(util.dump("MOUNT", res));
+    //print(util.dump("MPOINTS", util.mapByField(res, 'dst')));
+});
+
+fixture.addTest('stat', function() {
+    var env = os.environ();
+    test.throws(function() { os.stat(os.home()); }, null, "Should throw");
+
+    var info = os.stat(os.home(), { fields : "ms" });
+    test.equal(typeof(info), 'object', 'stat()->object');
+    test.equal(typeof(info.mount_point)
+               , 'string', util.dump("No mount point:", info));
+    test.ok(os.path.isDir(info.mount_point), "mount point is dir");
+    test.ge(parseInt(info.size), 1, util.dump("Size is wrong:", info));
+    info = os.stat(info.mount_point, { filesystem : true, fields : "abS" });
+    var blocks = parseInt(info.blocks)
+    , bsize = parseInt(info.blocks_size)
+    , free_blocks = parseInt(info.free_blocks_user);
+    test.ge(parseInt(blocks), 1, util.dump("No blocks:", info));
+    test.ge(bsize, 1, util.dump("Block size > 0:", info));
+    test.ge(free_blocks, 1, util.dump("Free blocks > 0:", info));
+    test.ge(blocks, free_blocks, util.dump("Total >= Free", info));
+});
+
+fixture.addTest('diskFree', function() {
+    var res = os.diskFree(os.path(os.home()));
+    test.equal(typeof(res), 'number', "diskFree->number");
+    test.ge(res, 1, "Most probably free space > 0");
+});
+
+
+fixture.addTest('du', function() {
+    var test_dir = os.path(rootDir, 'du');
+    os.mkdir(test_dir);
+    os.system("dd", ["if=/dev/zero", "of=" + os.path(test_dir, "a")
+                     , "bs=1024", "count=2"]);
+    var res = os.du(test_dir);
+    test.ge(parseInt(res), 1, "du should be a number > 0");
+    os.system("dd", ["if=/dev/zero", "of=" + os.path(test_dir, "b")
+                     , "bs=1024", "count=100"]);
+    res = os.du(test_dir);
+    test.ge(parseInt(res), 100, "du should be a number > 100");
+
+    var dir_c = os.path(test_dir, 'c');
+    os.mkdir(dir_c);
+    res = os.du(test_dir, { summarize: false });
+    test.equal(typeof(res), 'object', util.dump("Object is expected", res));
+    _.eachProperty(function(k, v) {
+        test.ok(os.path.isDescendent(k, test_dir), "Should be descendent: " + k
+               + " of " + test_dir);
+        test.ok(/^[0-9]+$/.test(v), "Dir size should be integer, but it is "
+                + v);
+    }, res);
+});
+
+fixture.addTest('mktemp', function() {
+    var name = os.mktemp();
+    test.equal(typeof(name), 'string', "Temp file name is not a string: " + name);
+    test.ok(os.path.isFile(name), "Should be file:" + name);
+    os.rm(name);
+    name = os.mktemp({dir: true});
+    test.equal(typeof(name), 'string', "Temp dir name is not a string: " + name);
+    test.ok(os.path.isDir(name), "Should be dir:" + name);
+    os.rmtree(name);
 });
 
 fixture.execute();

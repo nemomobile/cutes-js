@@ -1,3 +1,5 @@
+var config = require('config');
+config.document = true;
 var test = require('test');
 var util = require("util");
 
@@ -116,6 +118,14 @@ fixture.addTest('zip', function() {
     test.deepEqual(util.zip(s1, s2), [[1, 2], [3, 4]]);
     s1 = [1, 3]; s2 = [2, 4], s3 = [5, 6];
     test.deepEqual(util.zip(s1, s2, s3), [[1, 2, 5], [3, 4, 6]]);
+});
+
+fixture.addTest('doc', function() {
+    var fn = util.doc(function(a) { return 0; }
+                      , { params: { a: "Some param" }, returns: "zero" });
+    test.notEqual(fn.__doc__, undefined, "Should has __doc__");
+    var doc = util.help(fn);
+    // TODO
 });
 
 fixture.execute();
