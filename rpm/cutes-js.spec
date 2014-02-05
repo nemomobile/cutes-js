@@ -54,6 +54,9 @@ CoffeeScript compiler for cutes
 %cmake
 make %{?jobs:-j%jobs}
 
+%check
+make check
+
 %install
 rm -rf %{buildroot}
 install -d -D -p -m755 %{buildroot}%{jslibdir}/

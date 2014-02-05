@@ -7,6 +7,7 @@ include_directories(
 
 add_subdirectory(lib)
 add_subdirectory(coffee)
+add_subdirectory(tests)
 
 FILE(GLOB JSON_FILES json/*.js)
 install(FILES ${JSON_FILES} DESTINATION share/cutes/json)
