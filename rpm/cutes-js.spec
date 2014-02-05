@@ -24,6 +24,13 @@ License: MIT
 %description -n cutes-narwhal
 Part of Narwhal javascript library adopted to be used with cutes
 
+%package -n cutes-underscore-js
+Summary: Underscore.js library
+Group: System Environment/Libraries
+License: MIT
+%description -n cutes-underscore-js
+Underscore.js library (minified version)
+
 %package -n cutes-json-js
 Summary: Canonical javascript json parser
 License: Public Domain
@@ -57,7 +64,20 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%{jslibdir}/*.js
+%{jslibdir}/config.js
+%{jslibdir}/debug.js
+%{jslibdir}/error.js
+%{jslibdir}/functional.js
+%{jslibdir}/git.js
+%{jslibdir}/json_config.js
+%{jslibdir}/os.js
+%{jslibdir}/qtcore.js
+%{jslibdir}/string.js
+%{jslibdir}/subprocess.js
+%{jslibdir}/sys.js
+%{jslibdir}/test.js
+%{jslibdir}/time.js
+%{jslibdir}/util.js
 
 %files -n cutes-json-js
 %defattr(-,root,root,-)
@@ -68,6 +88,12 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{jslibdir}/narwhal/*.js
 %doc README-narwhal.md
+
+%files -n cutes-underscore-js
+%defattr(-,root,root,-)
+%{jslibdir}/underscore.js
+%doc underscore/README.md
+%doc underscore/LICENSE
 
 %files -n cutes-coffee-script
 %defattr(-,root,root,-)

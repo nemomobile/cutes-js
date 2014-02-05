@@ -10,3 +10,5 @@ add_subdirectory(coffee)
 
 FILE(GLOB JSON_FILES json/*.js)
 install(FILES ${JSON_FILES} DESTINATION share/cutes/json)
+
+install(FILES underscore/underscore-min.js DESTINATION share/cutes RENAME underscore.js)
