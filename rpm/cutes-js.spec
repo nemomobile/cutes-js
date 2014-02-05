@@ -61,6 +61,7 @@ make check
 rm -rf %{buildroot}
 install -d -D -p -m755 %{buildroot}%{jslibdir}/
 make install DESTDIR=%{buildroot}
+gzip README-narwhal.md
 
 %clean
 rm -rf %{buildroot}
@@ -90,7 +91,7 @@ rm -rf %{buildroot}
 %files -n cutes-narwhal
 %defattr(-,root,root,-)
 %{jslibdir}/narwhal/*.js
-%doc README-narwhal.md
+%doc README-narwhal.md.gz
 
 %files -n cutes-underscore-js
 %defattr(-,root,root,-)
