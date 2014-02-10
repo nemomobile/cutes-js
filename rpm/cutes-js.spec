@@ -8,7 +8,7 @@ URL: https://github.com/nemomobile/cutes-js
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Requires: cutes >= 0.8.6
+Requires: cutes >= 0.8.7
 Requires: cutes-narwhal = %{version}, cutes-json-js = %{version}
 Requires: coreutils >= 6.9
 BuildRequires: cmake >= 2.8
@@ -23,6 +23,13 @@ Group: System Environment/Libraries
 License: MIT
 %description -n cutes-narwhal
 Part of Narwhal javascript library adopted to be used with cutes
+
+%package -n cutes-underscore-js
+Summary: Underscore.js library
+Group: System Environment/Libraries
+License: MIT
+%description -n cutes-underscore-js
+Underscore.js library (minified version)
 
 %package -n cutes-json-js
 Summary: Canonical javascript json parser
@@ -47,17 +54,34 @@ CoffeeScript compiler for cutes
 %cmake
 make %{?jobs:-j%jobs}
 
+%check
+make check
+
 %install
 rm -rf %{buildroot}
 install -d -D -p -m755 %{buildroot}%{jslibdir}/
 make install DESTDIR=%{buildroot}
+gzip README-narwhal.md
 
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%{jslibdir}/*.js
+%{jslibdir}/config.js
+%{jslibdir}/debug.js
+%{jslibdir}/error.js
+%{jslibdir}/functional.js
+%{jslibdir}/git.js
+%{jslibdir}/json_config.js
+%{jslibdir}/os.js
+%{jslibdir}/qtcore.js
+%{jslibdir}/string.js
+%{jslibdir}/subprocess.js
+%{jslibdir}/sys.js
+%{jslibdir}/test.js
+%{jslibdir}/time.js
+%{jslibdir}/util.js
 
 %files -n cutes-json-js
 %defattr(-,root,root,-)
@@ -67,7 +91,13 @@ rm -rf %{buildroot}
 %files -n cutes-narwhal
 %defattr(-,root,root,-)
 %{jslibdir}/narwhal/*.js
-%doc README-narwhal.md
+%doc README-narwhal.md.gz
+
+%files -n cutes-underscore-js
+%defattr(-,root,root,-)
+%{jslibdir}/underscore.js
+%doc underscore/README.md
+%doc underscore/LICENSE
 
 %files -n cutes-coffee-script
 %defattr(-,root,root,-)
