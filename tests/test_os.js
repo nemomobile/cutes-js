@@ -281,7 +281,7 @@ fixture.addTest('du', function() {
     os.mkdir(dir_c);
     res = os.du(test_dir, { summarize: false });
     test.equal(typeof(res), 'object', util.dump("Object is expected", res));
-    _.eachProperty(function(k, v) {
+    _.eachProperty(function(v, k) {
         test.ok(os.path.isDescendent(k, test_dir), "Should be descendent: " + k
                + " of " + test_dir);
         test.ok(/^[0-9]+$/.test(v), "Dir size should be integer, but it is "

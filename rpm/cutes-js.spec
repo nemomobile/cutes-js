@@ -8,7 +8,7 @@ URL: https://github.com/nemomobile/cutes-js
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Requires: cutes >= 0.8.7
+Requires: cutes >= 0.8.9
 Requires: cutes-narwhal = %{version}, cutes-json-js = %{version}
 Requires: coreutils >= 6.9
 BuildRequires: cmake >= 2.8

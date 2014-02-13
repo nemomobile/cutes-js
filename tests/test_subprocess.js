@@ -47,4 +47,14 @@ fixture.addTest('ps_cwd', function() {
     test.equal(res.toString(), "f2\n");
 });
 
+fixture.addTest('write', function() {
+    var ps, res;
+    ps = api.process();
+    res = ps.popen_sync('cat', ['-']);
+    res.write('s');
+    res.stdin.close();
+    res.wait(-1);
+    test.equal(res.stdout().toString(), "s");
+});
+
 fixture.execute();
