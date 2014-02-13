@@ -183,6 +183,17 @@ fixture.addTest('cp', function() {
     test.equal(os.read_file(p3).toString(), "1");
 });
 
+fixture.addTest('rename', function() {
+    var rc;
+    var p1 = os.path(rootDir, 'rename1');
+    var p2 = os.path(rootDir, 'rename2');
+    os.write_file(p1, "1");
+    test.ok(os.path.isFile(p1));
+    os.rename(p1, p2);
+    test.ok(os.path.isFile(p2));
+    test.ok(!os.path.isFile(p1));
+});
+
 fixture.addTest('tree', function() {
     var treeRootSrc = os.path(rootDir, 'treeTestSrc');
     os.mkdir(treeRootSrc);
