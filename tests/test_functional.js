@@ -18,4 +18,13 @@ fixture.addTest('visit', function() {
     test.deepEqual(data, ["a","abc","ade","af","af0g","af1h"]);
 });
 
+fixture.addTest('functionStack', function() {
+    var s = "";
+    var fns = api.functionStack();
+    fns.push(function() { s += '3'; });
+    fns.push(function() { s += '2'; });
+    fns.execute();
+    test.equal(s, '23');
+});
+
 fixture.execute();
