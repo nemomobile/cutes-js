@@ -282,6 +282,7 @@ fixture.addTest('du', function() {
     os.system("dd", ["if=/dev/zero", "of=" + os.path(test_dir, "a")
                      , "bs=1024", "count=2"]);
     var res = os.du(test_dir);
+    test.equal(typeof res, "number");
     test.ge(parseInt(res), 1, "du should be a number > 0");
     os.system("dd", ["if=/dev/zero", "of=" + os.path(test_dir, "b")
                      , "bs=1024", "count=100"]);
@@ -295,8 +296,7 @@ fixture.addTest('du', function() {
     _.eachProperty(function(v, k) {
         test.ok(os.path.isDescendent(k, test_dir), "Should be descendent: " + k
                + " of " + test_dir);
-        test.ok(/^[0-9]+$/.test(v), "Dir size should be integer, but it is "
-                + v);
+        test.equal(typeof v, "number");
     }, res);
 });
 
