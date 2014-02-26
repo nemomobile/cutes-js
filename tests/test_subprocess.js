@@ -57,4 +57,20 @@ fixture.addTest('write', function() {
     test.equal(res.stdout().toString(), "s");
 });
 
+fixture.addTest('wait', function() {
+    var ps, res, is_finished;
+    ps = api.process();
+    res = ps.popen_sync('echo', []);
+    is_finished = res.wait(-1);
+    test.equal(is_finished, true);
+    test.equal(res.error(), undefined);
+
+    ps = api.process();
+    res = ps.popen_sync('./non_existing_process', []);
+    var is_finished = res.wait(-1);
+    test.equal(is_finished, true);
+    test.equal(res.error(), "FailedToStart");
+
+});
+
 fixture.execute();
