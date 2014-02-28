@@ -73,4 +73,21 @@ fixture.addTest('wait', function() {
 
 });
 
+fixture.addTest('check_error', function() {
+    var ps, res, is_finished;
+
+    ps = api.process();
+    res = ps.popen_sync('./non_existing_process', []);
+    var is_finished = res.wait(-1);
+    test.equal(is_finished, true);
+    test.throws(res.check_error);
+
+    ps = api.process();
+    res = ps.popen_sync('echo', []);
+    is_finished = res.wait(-1);
+    test.equal(is_finished, true);
+    test.equal(res.check_error(), 0);
+
+});
+
 fixture.execute();
