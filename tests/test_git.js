@@ -74,4 +74,51 @@ fixture.addTest('commit2', function() {
     test.equal(status.length, 0);
 });
 
+fixture.addTest('local_exclude', function() {
+    var get_exclude = function() {
+        var local = vcs.get_local();
+        test.ok(local);
+        var exclude = local.exclude;
+        test.ok(exclude);
+        return exclude;
+    };
+    var exclude = get_exclude();
+    exclude.read();
+    test.deepEqual(exclude.all(), {});
+    exclude.add("h1");
+    test.deepEqual(exclude.all(), {h1: true});
+
+    var exclude2 = get_exclude();
+    exclude2.read();
+    test.deepEqual(exclude2.all(), {});
+
+    test.ok(exclude.commit());
+
+    exclude = get_exclude();
+    exclude.read();
+    test.deepEqual(exclude.all(), {h1: true});
+    exclude.add(["h2", "h3"]);
+    test.ok(exclude.commit());
+    exclude = get_exclude();
+    exclude.read();
+    test.deepEqual(exclude.all(), {h1: true, h2: true, h3: true});
+
+    var fname = vcs.path('h2');
+    os.write_file(fname.absolute, "h2_data");
+    var status = vcs.status();
+    test.equal(status.length, 0);
+
+    exclude.rm("h2");
+    status = vcs.status();
+    test.equal(status.length, 0);
+    test.ok(exclude.commit());
+
+    status = vcs.status();
+    test.equal(status.length, 1);
+    test.equal(vcs.status().toString(), "?? h2");
+    os.rm(fname.absolute);
+    status = vcs.status();
+    test.equal(status.length, 0);
+});
+
 fixture.execute();
