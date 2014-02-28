@@ -83,6 +83,7 @@ rm -rf %{buildroot}
 %{jslibdir}/test.js
 %{jslibdir}/time.js
 %{jslibdir}/util.js
+%{jslibdir}/doc.js
 
 %files -n cutes-json-js
 %defattr(-,root,root,-)
