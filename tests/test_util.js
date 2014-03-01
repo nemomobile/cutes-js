@@ -128,4 +128,20 @@ fixture.addTest('doc', function() {
     // TODO
 });
 
+fixture.addTest('mapObject', function() {
+    var res;
+    var toStr = function(key, value) {
+        return String(key) + "," + value;
+    };
+    res = util.mapObject({}, toStr);
+    test.deepEqual(res, []);
+
+    res = util.mapObject({x:1}, toStr);
+    test.deepEqual(res, ["x,1"]);
+
+    res = util.mapObject({x:1, y:3}, toStr);
+    res.sort();
+    test.deepEqual(res, ["x,1", "y,3"]);
+});
+
 fixture.execute();
