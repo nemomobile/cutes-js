@@ -94,6 +94,14 @@ fixture.addTest('check_error', function() {
     test.equal(is_finished, true);
     test.equal(res.check_error(), 0);
 
+    ps = api.process();
+    res = ps.popen_sync('sleep', [1]);
+    is_finished = res.wait(10);
+    while (!is_finished)
+        is_finished = res.wait(10);
+    test.equal(is_finished, true);
+    test.equal(res.check_error(), 0);
+
 });
 
 fixture.execute();
