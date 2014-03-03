@@ -81,6 +81,12 @@ fixture.addTest('check_error', function() {
     var is_finished = res.wait(-1);
     test.equal(is_finished, true);
     test.throws(res.check_error);
+    try {
+        res.check_error({info: "more"});
+    } catch (e) {
+        test.ok("info" in e, util.dump("Error", e));
+        test.equal(e.info, "more");
+    }
 
     ps = api.process();
     res = ps.popen_sync('echo', []);
