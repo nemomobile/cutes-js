@@ -37,7 +37,7 @@
     var cs = this.CoffeeScript
     var read_file = function(file_name) {
         var f = new Q.File(file_name)
-        f.open(Q.IODevice.ReadOnly)
+        f.open(Q.File.OpenMode.ReadOnly)
         try {
             return f.readAll().toString()
         } finally {
