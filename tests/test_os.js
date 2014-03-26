@@ -2,7 +2,7 @@ var test = require('test');
 var util = require('util');
 var os = require("os.js");
 var time = require('time');
-// var debug= require('debug');
+var debug= require('debug');
 // debug.level('debug');
 var _ = require('functional');
 
@@ -101,24 +101,6 @@ fixture.addTest('dirEntryOps', function() {
     test.ok(!os.path.exists(fname));
 });
 
-fixture.addTest('entryInfoList', function() {
-    var dirForList = os.path(rootDir, "entryInfoList")
-    test.ok(os.mkdir(dirForList), "dirForList for tests is created");
-    var f1 = os.path(dirForList, "f1"), f2 = os.path(dirForList, "f2");
-    var d = os.qt.dir(dirForList);
-    var Q = require('qtcore');
-    os.write_file(f1, "1");
-    var entries = d.entryInfoList(["*"], Q.Dir.Files);
-    test.equal(entries.length, 1);
-    test.equal(entries[0].fileName(), "f1");
-
-    os.write_file(f2, "2");
-    var entries2 = d.entryInfoList(["*"], Q.Dir.Files, Q.Dir.Name);
-    test.equal(entries2.length, 2);
-    test.equal(entries2[0].fileName(), "f1");
-    test.equal(entries2[1].fileName(), "f2");
-});
-
 fixture.addTest('fileInfo', function() {
     var dname = "path_info";
     var d = os.path(rootDir, dname);
@@ -148,6 +130,26 @@ fixture.addTest('fileInfo', function() {
     test.equal(os.path.baseName(f1), base);
     test.equal(os.path.suffix(f1), suffix);
     test.equal(os.path.completeSuffix(f1), completeSuffix);
+});
+
+
+fixture.addTest('entryInfoList', function() {
+    var dirForList = os.path(rootDir, "entryInfoList")
+    test.ok(os.mkdir(dirForList), "dirForList for tests is created");
+    var f1 = os.path(dirForList, "f1"), f2 = os.path(dirForList, "f2");
+
+    var d = os.qt.dir(dirForList);
+    var Q = require('qtcore');
+    os.write_file(f1, "1");
+    var entries = d.entryInfoList(["*"], Q.Dir.Filter.Files, Q.Dir.SortFlag.NoSort);
+    test.equal(entries.length, 1);
+    test.equal(entries[0].fileName(), "f1");
+
+    os.write_file(f2, "2");
+    entries = d.entryInfoList(["*"], Q.Dir.Filter.Files, Q.Dir.SortFlag.Name);
+    test.equal(entries.length, 2);
+    test.equal(entries[0].fileName(), "f1");
+    test.equal(entries[1].fileName(), "f2");
 });
 
 fixture.addTest('fileTime', function() {
