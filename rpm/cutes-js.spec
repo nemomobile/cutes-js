@@ -76,7 +76,6 @@ rm -rf %{buildroot}
 %{jslibdir}/git.js
 %{jslibdir}/json_config.js
 %{jslibdir}/os.js
-%{jslibdir}/qtcore.js
 %{jslibdir}/string.js
 %{jslibdir}/subprocess.js
 %{jslibdir}/sys.js
