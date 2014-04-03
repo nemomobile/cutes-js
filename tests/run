@@ -1,17 +1,50 @@
 #!/bin/bash
 
+ARGS=$(getopt -o sl: --long "system,debug" -- "$@");
+
+eval set -- "$ARGS";
+
+repo_test=yes
+
+DEBUG=5
+
+while true; do
+    case "$1" in
+        -s)
+            repo_test=no
+            shift;
+            ;;
+        -l)
+            DEBUG=$2;
+            echo "LEV $2"
+            shift 2;
+            ;;
+        --)
+            shift;
+            ;;
+        *)
+            break;
+            ;;
+    esac
+done
+
 EXEC=cutes
 
 $EXEC test_basic.js
-DEBUG=5
-if [ $# -ge 1 ]; then
-    DEBUG=$1
-fi
 
-export CUTES_LIBRARY_PATH=../lib:../
+if [ $repo_test == "yes" ]; then
+    echo "Using libraries from repository"
+    export CUTES_LIBRARY_PATH=../lib:../
+else
+    echo "Using system libraries"
+fi
+export CUTES_DEBUG=$DEBUG
+echo "Debug level $CUTES_DEBUG"
+
 for i in error util functional string subprocess os git sys; do
-    CUTES_DEBUG=$DEBUG $EXEC test_$i.js
+    $EXEC test_$i.js
     if [ $? -ne 0 ]; then
+        echo "Test $i is failed"
         exit 1;
     fi
 done

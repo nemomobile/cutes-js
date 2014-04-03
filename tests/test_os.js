@@ -25,7 +25,7 @@ fixture.addTest('basic', function() {
     res = os.system(test_cmd, ["0", "1"]);
     test.equal(res, 1);
     res = os.system(test_cmd, ["3", "5"]);
-    test.equal(res, 9);
+    test.equal(res, 8);
 });
 
 fixture.addTest('path', function() {

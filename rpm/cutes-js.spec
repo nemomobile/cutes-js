@@ -45,6 +45,14 @@ Group: Applications/Libraries
 %description -n cutes-coffee-script
 CoffeeScript compiler for cutes
 
+%package tests
+Summary:    Tests for cutes-js
+License:    GPLv2.1
+Group:      System Environment/Libraries
+Requires:   %{name} = %{version}-%{release}
+%description tests
+%summary
+
 %define jslibdir %{_datadir}/cutes
 
 %prep
@@ -106,3 +114,7 @@ rm -rf %{buildroot}
 %{_bindir}/coffee-script-compile
 %doc coffee/README
 %doc coffee/COPYING
+
+%files tests
+%defattr(-,root,root,-)
+/opt/tests/cutes-js/*
