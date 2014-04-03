@@ -11,6 +11,20 @@ fixture.addTest('ps_call_rc', function() {
     ps = api.process();
     res = ps.call_rc(test_cmd);
     test.equal(res, 0);
+
+    test_cmd = "./subprocess_cmd_return_arg.sh";
+    res = api.call_rc(test_cmd, ["0", "0"]);
+    test.equal(res, 0);
+    res = api.call_rc(test_cmd, ["1", "0"]);
+    test.equal(res, 1);
+    res = api.call_rc(test_cmd, ["0", "1"]);
+    test.equal(res, 1);
+    res = api.call_rc(test_cmd, ["3", "5"]);
+    test.equal(res, 8);
+
+    test.throws(function() {
+        api.check_call(test_cmd, ["1", "0"]);
+    });
 });
 
 fixture.addTest('ps_check_output', function() {
@@ -18,6 +32,9 @@ fixture.addTest('ps_check_output', function() {
     var ps, res;
     ps = api.process();
     res = ps.check_output(test_cmd);
+    test.equal(res.toString(), "1\n2\n");
+
+    res = api.check_output(test_cmd);
     test.equal(res.toString(), "1\n2\n");
 });
 

@@ -15,6 +15,17 @@ fixture.addTest('basic', function() {
     test.notEqual(home.length, 0);
     test.equal(home, cutes.env['HOME']);
     test.equal(os.root(), '/'); // unix only
+
+    test.equal(os.system('echo', []), 0);
+    var test_cmd = "./subprocess_cmd_return_arg.sh";
+    res = os.system(test_cmd, ["0", "0"]);
+    test.equal(res, 0);
+    res = os.system(test_cmd, ["1", "0"]);
+    test.equal(res, 1);
+    res = os.system(test_cmd, ["0", "1"]);
+    test.equal(res, 1);
+    res = os.system(test_cmd, ["3", "5"]);
+    test.equal(res, 9);
 });
 
 fixture.addTest('path', function() {
