@@ -3,14 +3,14 @@
 EXEC=cutes
 
 $EXEC test_basic.js
-if [ $? -ne 0 ]; then
-    exit 1;
+DEBUG=5
+if [ $# -ge 1 ]; then
+    DEBUG=$1
 fi
 
 export CUTES_LIBRARY_PATH=../lib:../
-
 for i in error util functional string subprocess os git sys; do
-    $EXEC test_$i.js
+    CUTES_DEBUG=$DEBUG $EXEC test_$i.js
     if [ $? -ne 0 ]; then
         exit 1;
     fi
