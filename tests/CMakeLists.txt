@@ -6,14 +6,16 @@ add_test(test ./run)
 add_dependencies(check test)
 
 FILE(GLOB JS_FILES test_*.js)
-
-install(
-  FILES run ${JS_FILES}
-  DESTINATION ${TESTS_DIR}
-)
+FILE(GLOB SH_FILES *.sh)
 
 configure_file(tests.xml.in tests.xml @ONLY)
-install(
-  FILES tests.xml
+
+install(PROGRAMS
+  run ${SH_FILES}
   DESTINATION ${TESTS_DIR}
-)
+  )
+
+install(FILES
+  tests.xml local-module.js ${JS_FILES}
+  DESTINATION ${TESTS_DIR}
+  )
