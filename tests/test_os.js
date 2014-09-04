@@ -150,7 +150,7 @@ fixture.addTest('entryInfoList', function() {
     var f1 = os.path(dirForList, "f1"), f2 = os.path(dirForList, "f2");
 
     var d = os.qt.dir(dirForList);
-    var Q = require('qtcore');
+    var Q = require('qt-core');
     os.write_file(f1, "1");
     var entries = d.entryInfoList(["*"], Q.Dir.Filter.Files, Q.Dir.SortFlag.NoSort);
     test.equal(entries.length, 1);
