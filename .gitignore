@@ -1,8 +1,0 @@
-*~
-*.pyc
-CMakeCache*
-CMakeFiles*
-cmake_install.cmake
-Makefile
-cscope*
-install_manifest.txt
